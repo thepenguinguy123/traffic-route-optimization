@@ -1,0 +1,158 @@
+{
+  "edges": [
+    {
+      "source": "N01",
+      "target": "N02",
+      "distance_km": 0.45,
+      "base_time_min": 1.8,
+      "congestion_level": 2,
+      "road_type": "secondary_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N02",
+      "target": "N01",
+      "distance_km": 0.45,
+      "base_time_min": 2.0,
+      "congestion_level": 2,
+      "road_type": "secondary_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N02",
+      "target": "N03",
+      "distance_km": 0.85,
+      "base_time_min": 3.0,
+      "congestion_level": 2,
+      "road_type": "secondary_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N03",
+      "target": "N02",
+      "distance_km": 0.85,
+      "base_time_min": 3.2,
+      "congestion_level": 2,
+      "road_type": "secondary_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N01",
+      "target": "N03",
+      "distance_km": 0.8,
+      "base_time_min": 2.3,
+      "congestion_level": 1,
+      "road_type": "main_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N03",
+      "target": "N04",
+      "distance_km": 0.65,
+      "base_time_min": 1.8,
+      "congestion_level": 1,
+      "road_type": "main_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N04",
+      "target": "N05",
+      "distance_km": 0.15,
+      "base_time_min": 0.7,
+      "congestion_level": 1,
+      "road_type": "residential_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N05",
+      "target": "N06",
+      "distance_km": 0.55,
+      "base_time_min": 2.1,
+      "congestion_level": 1,
+      "road_type": "secondary_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N06",
+      "target": "N07",
+      "distance_km": 0.65,
+      "base_time_min": 2.0,
+      "congestion_level": 1,
+      "road_type": "main_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N01",
+      "target": "N06",
+      "distance_km": 0.85,
+      "base_time_min": 4.5,
+      "congestion_level": 1,
+      "road_type": "main_road",
+      "risk_level": 0,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N06",
+      "target": "N01",
+      "distance_km": 0.85,
+      "base_time_min": 3.0,
+      "congestion_level": 2,
+      "road_type": "main_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N03",
+      "target": "N05",
+      "distance_km": 0.75,
+      "base_time_min": 1.8,
+      "congestion_level": 1,
+      "road_type": "secondary_road",
+      "risk_level": 5,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N04",
+      "target": "N06",
+      "distance_km": 0.75,
+      "base_time_min": 2.4,
+      "congestion_level": 2,
+      "road_type": "secondary_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    },
+    {
+      "source": "N07",
+      "target": "N08",
+      "distance_km": 0.75,
+      "base_time_min": 2.5,
+      "congestion_level": 2,
+      "road_type": "residential_road",
+      "risk_level": 1,
+      "restriction": "none",
+      "is_closed": false
+    }
+  ]
+}
