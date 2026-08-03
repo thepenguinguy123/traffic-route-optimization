@@ -1,14 +1,16 @@
 """Minimal behavior tests shared by route-search algorithms."""
 
+from backend.app.algorithms.astar import search as astar_search
 from backend.app.algorithms.bfs import search as bfs_search
 from backend.app.algorithms.dfs import search as dfs_search
+from backend.app.algorithms.ucs import search as ucs_search
 from backend.app.core.cost import CostCalculator
 from backend.app.core.cost_profiles import COST_PROFILES
 from backend.app.core.graph import TrafficGraph
 from backend.app.core.models import RoadEdge, TrafficNode
 
 
-SEARCH_FUNCTIONS = (bfs_search, dfs_search)
+SEARCH_FUNCTIONS = (bfs_search, dfs_search, ucs_search, astar_search)
 
 
 def _build_graph(
