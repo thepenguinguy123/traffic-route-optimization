@@ -1,6 +1,6 @@
 """Approved optimization profiles for traffic-aware route cost."""
 
-from backend.app.core.models import CostProfile
+from .models import CostProfile
 
 
 COST_PROFILES = {

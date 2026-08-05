@@ -4,8 +4,8 @@ from math import asin, cos, radians, sin, sqrt
 
 import networkx as nx
 
-from backend.app.core.cost import CostCalculator
-from backend.app.core.errors import (
+from .cost import CostCalculator
+from .errors import (
     DuplicateEdgeError,
     DuplicateNodeError,
     EdgeNotFoundError,
@@ -13,7 +13,7 @@ from backend.app.core.errors import (
     NodeNotFoundError,
     UnsupportedVehicleError,
 )
-from backend.app.core.models import CostProfile, RoadEdge, TrafficNode
+from .models import CostProfile, RoadEdge, TrafficNode
 
 
 _NODE_DATA_KEY = "node"

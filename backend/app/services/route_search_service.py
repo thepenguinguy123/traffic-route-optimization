@@ -1,9 +1,9 @@
 """Framework-independent orchestration for route-search algorithms."""
 
-from backend.app.algorithms.registry import ALGORITHM_REGISTRY
-from backend.app.core.cost_profiles import COST_PROFILES
-from backend.app.core.graph import TrafficGraph
-from backend.app.core.search_models import SearchResult
+from ..algorithms.registry import ALGORITHM_REGISTRY
+from ..core.cost_profiles import COST_PROFILES
+from ..core.graph import TrafficGraph
+from ..core.search_models import SearchResult
 
 
 class RouteSearchService:

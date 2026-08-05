@@ -3,7 +3,7 @@
 import math
 from dataclasses import dataclass
 
-from backend.app.core.errors import InvalidEdgeError, InvalidNodeError
+from .errors import InvalidEdgeError, InvalidNodeError
 
 
 _VALID_NODE_TYPES = frozenset({"intersection", "poi"})

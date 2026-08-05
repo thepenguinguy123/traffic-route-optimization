@@ -3,10 +3,10 @@
 from collections import deque
 from time import perf_counter
 
-from backend.app.algorithms.common import build_search_result, reconstruct_path
-from backend.app.core.graph import TrafficGraph
-from backend.app.core.models import CostProfile
-from backend.app.core.search_models import (
+from .common import build_search_result, reconstruct_path
+from ..core.graph import TrafficGraph
+from ..core.models import CostProfile
+from ..core.search_models import (
     FrontierItem,
     SearchResult,
     SearchTraceStep,

@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Route Optimizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" />
+    
+    <!-- Inline CSS for local debugging -->
+    <style>
+    :root{--color-bg-primary:#ffffff;--color-bg-panel:#f5f5f5;--color-bg-glass:#e0e0e0;--color-border:#000000;--color-text-primary:#333333;--color-text-secondary:#666666;--color-accent:#000000;--spacing-xs:4px;--spacing-sm:8px;--spacing-md:12px;--spacing-lg:16px;--spacing-xl:20px;--transition-fast:all 0.2s ease;--transition-normal:all 0.3s ease}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background-color:var(--color-bg-primary);color:var(--color-text-primary);overflow:hidden}
+    .app-container{display:flex;height:100vh;width:100vw}
+    .control-panel{flex:0 0 350px;height:100%;background:var(--color-bg-panel);border-right:var(--color-border);display:flex;flex-direction:column;z-index:10}
+    .control-panel__header{padding:var(--spacing-xl);border-bottom:var(--color-border)}
+    .control-panel__header h1{font-size:1.25rem;font-weight:600;margin-bottom:var(--spacing-xs)}
+    .control-panel__header .subtitle{font-size:0.85rem;color:var(--color-text-secondary)}
+    .control-panel__content{flex:1;overflow-y:auto;padding:var(--spacing-xl);display:flex;flex-direction:column;gap:var(--spacing-lg)}
+    .control-group{display:flex;flex-direction:column;gap:var(--spacing-xs)}
+    .control-group label{font-size:0.85rem;font-weight:500;color:var(--color-text-secondary)}
+    .select{width:100%;background:var(--color-bg-glass);color:var(--color-text-primary);border:var(--color-border);padding:var(--spacing-sm) var(--spacing-md);font-family:inherit;appearance:none;outline:none}
+    .btn-primary{width:100%;background:var(--color-accent);color:white;font-size:1rem;border:var(--color-border)}
+    .btn-secondary{border:var(--color-border);background:var(--color-bg-glass);color:var(--color-text-primary)}
+    button{cursor:pointer;border-radius:0}
+    .glass-panel{background:var(--color-bg-glass);border:var(--color-border);padding:var(--spacing-lg);margin-top:var(--spacing-md)}
+    #map{width:100%;height:100%;background:var(--color-bg-glass)}
+    .map-container{flex:1;height:100vh}
+    .legend-color{width:14px;height:14px;border:var(--color-border);display:inline-block}
+    </style>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Nội dung HTML giống như trước -->
+    <div class="app-container">
+        <aside class="control-panel">
+            <header class="control-panel__header">
+                <h1>Traffic Route Optimizer</h1>
+                <p class="subtitle">Quận 1, TP.HCM</p>
+            </header>
+            <div class="control-panel__content">
+                <div class="control-group algorithm-control">
+                    <div class="control-label-row">
+                        <label for="algorithm-select">Thuật toán</label>
+                        <span class="control-kicker">GRAPH CORE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="algorithm-select" class="select">
+                            <option value="">Đang tải thuật toán...</option>
+                        </select>
+                    </div>
+                    <p id="algorithm-description" class="control-hint">Chọn cách mở rộng graph.</p>
+                </div>
+                <div class="control-group" id="start-group">
+                    <label for="start-select">Start Node</label>
+                    <select id="start-select" class="select">
+                        <option value="">Loading nodes...</option>
+                    </select>
+                </div>
+                <div class="control-group" id="end-group">
+                    <label for="end-select">End Node</label>
+                    <select id="end-select" class="select">
+                        <option value="">Loading nodes...</option>
+                    </select>
+                </div>
+                <div class="control-group" id="tsp-section" style="display: none;">
+                    <div class="tsp-header">
+                        <label>TSP Waypoints (<span id="tsp-count">0</span> selected)</label>
+                        <div class="tsp-actions">
+                            <button id="btn-select-all" class="btn-secondary btn-small">Select All</button>
+                            <button id="btn-clear-all" class="btn-secondary btn-small">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="tsp-waypoints-list" class="waypoints-list"></div>
+                </div>
+                <div class="control-group" id="cost-type">
+                    <div class="control-label-row">
+                        <label for="cost-profile-select">Tiêu chí tối ưu</label>
+                        <span class="control-kicker">COST PROFILE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="cost-profile-select" class="select">
+                            <option value="balanced">Cân bằng</option>
+                        </select>
+                    </div>
+                    <p id="cost-description" class="control-hint">Cân đối khoảng cách, thời gian và rủi ro.</p>
+                </div>
+                <div class="control-group">
+                    <label for="speed-slider">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="1" max="100" value="50">
+                    <div class="slider-labels">
+                        <span>Slow</span>
+                        <span>Fast</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="btn-start" class="btn-primary">Start Search</button>
+                    <div class="playback-controls" style="display: none;">
+                        <button id="btn-pause" class="btn-secondary">Pause</button>
+                        <button id="btn-resume" class="btn-secondary" style="display: none;">Resume</button>
+                        <button id="btn-reset" class="btn-secondary">Reset</button>
+                    </div>
+                </div>
+                <div id="results-panel" style="display: none;" class="glass-panel">
+                    <h3>Results Summary</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="stat-explored">0</span>
+                            <span class="stat-label">Nodes Explored</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="stat-distance">0 km</span>
+                            <span class="stat-label">Total Distance</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="stat-time">0 min</span>
+                            <span class="stat-label">Total Time</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="stat-cost">0</span>
+                            <span class="stat-label">Total Cost</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="stat-proc-time">0 ms</span>
+                            <span class="stat-label">Processing Time</span>
+                        </div>
+                    </div>
+                    <div class="route-display">
+                        <span class="stat-label">Optimal Route:</span>
+                        <div id="route-text" class="route-text-box"></div>
+                    </div>
+                    <div class="explanation-box">
+                        <span class="stat-label">Analysis:</span>
+                        <div id="explanation-text"></div>
+                    </div>
+                </div>
+                <div id="legend" class="glass-panel">
+                    <h4>Legend</h4>
+                    <ul class="legend-list">
+                        <li><span class="legend-color" style="background: white; border: 1px solid #000;"></span>Unexplored Node</li>
+                        <li><span class="legend-color" style="background: #fb923c; border: 1px solid #000;"></span>Restaurant</li>
+                        <li><span class="legend-color" style="background: #ef4444; border: 1px solid #000;"></span>Frontier Node</li>
+                        <li><span class="legend-color" style="background: #22c55e; border: 1px solid #000;"></span>Visited Node</li>
+                        <li><span class="legend-color" style="background: #f59e0b; border: 1px solid #000;"></span>Optimal Path</li>
+                    </ul>
+                    <div class="edge-legend">
+                        <span class="stat-label">Road Congestion:</span>
+                        <div class="gradient-bar"></div>
+                        <div class="slider-labels">
+                            <span>Smooth</span>
+                            <span>Heavy Traffic</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="map-container">
+            <div id="map"></div>
+            <div id="loading-overlay" style="display: none;">
+                <p>Loading map...</p>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

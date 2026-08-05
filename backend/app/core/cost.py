@@ -1,6 +1,6 @@
 """Traffic-aware cost calculations shared by routing algorithms."""
 
-from backend.app.core.models import CostProfile, RoadEdge
+from .models import CostProfile, RoadEdge
 
 
 CONGESTION_MULTIPLIERS = {

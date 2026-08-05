@@ -2,9 +2,9 @@
 
 from time import perf_counter
 
-from backend.app.core.graph import TrafficGraph
-from backend.app.core.models import CostProfile
-from backend.app.core.search_models import SearchResult, SearchTraceStep
+from ..core.graph import TrafficGraph
+from ..core.models import CostProfile
+from ..core.search_models import SearchResult, SearchTraceStep
 
 
 def reconstruct_path(

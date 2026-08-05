@@ -4,10 +4,10 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from backend.app.core.cost import CostCalculator
-from backend.app.core.errors import InvalidTrafficProfileError
-from backend.app.core.graph import TrafficGraph
-from backend.app.core.models import RoadEdge, TrafficNode
+from ..core.cost import CostCalculator
+from ..core.errors import InvalidTrafficProfileError
+from ..core.graph import TrafficGraph
+from ..core.models import RoadEdge, TrafficNode
 
 
 def load_nodes(file_path: str) -> list[TrafficNode]:

@@ -2,13 +2,14 @@
 
 from collections.abc import Callable
 
-from backend.app.algorithms.astar import search as astar_search
-from backend.app.algorithms.bfs import search as bfs_search
-from backend.app.algorithms.dfs import search as dfs_search
-from backend.app.algorithms.ucs import search as ucs_search
-from backend.app.core.graph import TrafficGraph
-from backend.app.core.models import CostProfile
-from backend.app.core.search_models import SearchResult
+from .astar import search as astar_search
+from .bfs import search as bfs_search
+from .dfs import search as dfs_search
+from .greedy import search as greedy_search
+from .ucs import search as ucs_search
+from ..core.graph import TrafficGraph
+from ..core.models import CostProfile
+from ..core.search_models import SearchResult
 
 
 SearchFunction = Callable[
@@ -19,6 +20,7 @@ SearchFunction = Callable[
 ALGORITHM_REGISTRY: dict[str, SearchFunction] = {
     "bfs": bfs_search,
     "dfs": dfs_search,
+    "greedy": greedy_search,
     "ucs": ucs_search,
     "astar": astar_search,
 }
