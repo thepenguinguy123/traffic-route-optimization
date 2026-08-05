@@ -43,15 +43,17 @@
                 <p class="subtitle">Quận 1, TP.HCM</p>
             </header>
             <div class="control-panel__content">
-                <div class="control-group">
-                    <label for="algorithm-select">Algorithm</label>
+                <div class="control-group algorithm-control">
+                    <div class="control-label-row">
+                        <label for="algorithm-select">Thuật toán</label>
+                        <span class="control-kicker">GRAPH CORE</span>
+                    </div>
                     <div class="select-wrapper">
                         <select id="algorithm-select" class="select">
-                            <option value="dfs">DFS (Depth-First Search)</option>
-                            <option value="greedy">Greedy (Greedy Best-First Search)</option>
-                            <option value="tsp">TSP (Traveling Salesman)</option>
+                            <option value="">Đang tải thuật toán...</option>
                         </select>
                     </div>
+                    <p id="algorithm-description" class="control-hint">Chọn cách mở rộng graph.</p>
                 </div>
                 <div class="control-group" id="start-group">
                     <label for="start-select">Start Node</label>
@@ -76,24 +78,16 @@
                     <div id="tsp-waypoints-list" class="waypoints-list"></div>
                 </div>
                 <div class="control-group" id="cost-type">
-                    <label>Cost Criteria</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="cost" value="distance" checked>
-                            <span class="radio-custom"></span>
-                            <span class="radio-text">Distance</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="cost" value="time">
-                            <span class="radio-custom"></span>
-                            <span class="radio-text">Time</span>
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="cost" value="combined">
-                            <span class="radio-custom"></span>
-                            <span class="radio-text">Total Cost</span>
-                        </label>
+                    <div class="control-label-row">
+                        <label for="cost-profile-select">Tiêu chí tối ưu</label>
+                        <span class="control-kicker">COST PROFILE</span>
                     </div>
+                    <div class="select-wrapper">
+                        <select id="cost-profile-select" class="select">
+                            <option value="balanced">Cân bằng</option>
+                        </select>
+                    </div>
+                    <p id="cost-description" class="control-hint">Cân đối khoảng cách, thời gian và rủi ro.</p>
                 </div>
                 <div class="control-group">
                     <label for="speed-slider">Animation Speed</label>

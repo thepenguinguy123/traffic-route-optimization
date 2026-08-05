@@ -13,8 +13,8 @@ from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 
-from app.core.food_area import FOOD_AREA_POLYGON, point_in_polygon, polygon_bounds
-from app.repositories.graph_data import NODES
+from ..core.food_area import FOOD_AREA_POLYGON, point_in_polygon, polygon_bounds
+from ..repositories.graph_data import NODES
 
 
 GOONG_PLACES_URL = "https://rsapi.goong.io/Place/AutoComplete"
@@ -145,6 +145,33 @@ def split_bounds(
     return result
 
 
+def write_checkpoint(
+    output_path: Path,
+    bounds: Tuple[float, float, float, float],
+    places: List[Dict[str, Any]],
+    completed_chunks: Set[int],
+    chunks: int,
+    complete: bool,
+) -> None:
+    """Ghi checkpoint nguyên tử để không mất dữ liệu khi request bị ngắt."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "polygon": FOOD_AREA_POLYGON,
+        "bounds": bounds,
+        "chunks": chunks,
+        "completed_chunks": sorted(completed_chunks),
+        "complete": complete,
+        "count": len(places),
+        "places": sorted(places, key=lambda place: place["name"].lower()),
+    }
+    temporary_path = output_path.with_suffix(output_path.suffix + ".tmp")
+    temporary_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    temporary_path.replace(output_path)
+
+
 def collect_places(
     api_key: str,
     bounds: Tuple[float, float, float, float],
@@ -153,17 +180,33 @@ def collect_places(
     limit: int,
     delay: float,
     polygon: Tuple[Tuple[float, float], ...] = FOOD_AREA_POLYGON,
-    chunks: int = 16,
+    chunks: int = 8,
     max_per_chunk: int = 10,
     max_detail_per_chunk: int = 40,
+    output_path: Optional[Path] = None,
+    resume: bool = True,
 ) -> List[Dict[str, Any]]:
     """Tìm tối đa max_per_chunk địa điểm trong mỗi ô và lọc theo polygon."""
     places: List[Dict[str, Any]] = []
     used_place_ids: Set[str] = set()
     checked_place_ids: Set[str] = set()
     area_chunks = split_bounds(bounds, chunks)
+    completed_chunks: Set[int] = set()
+
+    if resume and output_path and output_path.exists():
+        try:
+            previous = json.loads(output_path.read_text(encoding="utf-8"))
+            if previous.get("chunks") == chunks and previous.get("bounds") == list(bounds):
+                places = previous.get("places", [])
+                used_place_ids = {place["id"] for place in places}
+                completed_chunks = set(previous.get("completed_chunks", []))
+                print(f"Tiếp tục từ checkpoint: đã hoàn tất chunk {sorted(completed_chunks)}.")
+        except (OSError, json.JSONDecodeError, KeyError):
+            print("Checkpoint không hợp lệ, bắt đầu lại từ chunk đầu tiên.")
 
     for index, chunk in enumerate(area_chunks, start=1):
+        if index in completed_chunks:
+            continue
         chunk_west, chunk_south, chunk_east, chunk_north = chunk
         longitude = (chunk_west + chunk_east) / 2
         latitude = (chunk_south + chunk_north) / 2
@@ -209,6 +252,9 @@ def collect_places(
             location = result.get("geometry", {}).get("location")
             if location and in_search_area(location, polygon):
                 place_id = result.get("place_id", prediction["place_id"])
+                if place_id in used_place_ids:
+                    time.sleep(delay)
+                    continue
                 used_place_ids.add(place_id)
                 places.append(
                     {
@@ -228,6 +274,16 @@ def collect_places(
             f"Chunk {index}: giữ {detail_count}/{max_per_chunk} quán, "
             f"đã kiểm tra {detail_attempts}/{max_detail_per_chunk} ID."
         )
+        completed_chunks.add(index)
+        if output_path:
+            write_checkpoint(
+                output_path,
+                bounds,
+                places,
+                completed_chunks,
+                chunks,
+                complete=len(completed_chunks) == len(area_chunks),
+            )
 
     unique_places = {place["id"]: place for place in places}
     return sorted(unique_places.values(), key=lambda place: place["name"].lower())
@@ -290,6 +346,11 @@ def main() -> None:
         help="Số ID tối đa gọi Place Detail trong mỗi ô (mặc định: 40).",
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Bỏ qua checkpoint cũ và quét lại từ đầu.",
+    )
     args = parser.parse_args()
 
     api_key = os.getenv("GOONG_REST_API_KEY")
@@ -317,20 +378,8 @@ def main() -> None:
         args.chunks,
         args.max_per_chunk,
         args.max_detail_per_chunk,
-    )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(
-            {
-                "polygon": FOOD_AREA_POLYGON,
-                "bounds": bounds,
-                "count": len(places),
-                "places": places,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
+        args.output,
+        not args.no_resume,
     )
     print(f"Đã ghi {len(places)} quán ăn vào {args.output}")
 

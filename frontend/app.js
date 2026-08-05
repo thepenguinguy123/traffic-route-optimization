@@ -2,7 +2,7 @@
 // CONFIG
 // ==========================================
 const API_BASE = "http://localhost:8000";
-const GOONG_MAP_KEY = "DtWocjjwYy4U3vGHcDleTwzr4iCAmLfQP55tvpMS"; // <-- THAY BẰNG KEY THỰC CỦA BẠN
+let GOONG_MAP_KEY = "";
 
 // ==========================================
 // STATE
@@ -49,6 +49,11 @@ let state = {
  */
 function initMap() {
   console.log("[Map] Initializing Goong GL JS map...");
+
+  if (!GOONG_MAP_KEY) {
+    showLoading(true, "Thiếu GOONG_MAP_TILES_KEY trong file .env.");
+    return;
+  }
 
   if (!goongjs.supported()) {
     showLoading(true, "Trình duyệt không hỗ trợ Goong GL JS.");
@@ -455,14 +460,44 @@ document.getElementById("speed-slider").addEventListener("input", () => {
  */
 async function populateDropdowns() {
   try {
-    const res = await fetch(`${API_BASE}/api/nodes`);
-    if (!res.ok) throw new Error("Failed to load nodes");
-    const nodes = await res.json();
+    const [nodesResponse, algorithmsResponse, profilesResponse] =
+      await Promise.all([
+        fetch(`${API_BASE}/api/nodes`),
+        fetch(`${API_BASE}/api/algorithms`),
+        fetch(`${API_BASE}/api/cost-profiles`),
+      ]);
+    if (!nodesResponse.ok || !algorithmsResponse.ok || !profilesResponse.ok) {
+      throw new Error("Failed to load route options");
+    }
+    const [nodes, algorithms, profiles] = await Promise.all([
+      nodesResponse.json(),
+      algorithmsResponse.json(),
+      profilesResponse.json(),
+    ]);
     state.nodesData = nodes;
 
+    const algorithmSelect = document.getElementById("algorithm-select");
+    const profileSelect = document.getElementById("cost-profile-select");
     const startSelect = document.getElementById("start-select");
     const endSelect = document.getElementById("end-select");
     const tspList = document.getElementById("tsp-waypoints-list");
+
+    algorithmSelect.innerHTML = "";
+    algorithms.forEach((algorithm) => {
+      const option = new Option(algorithm.label, algorithm.id);
+      option.dataset.description = algorithm.description;
+      algorithmSelect.add(option);
+    });
+    algorithmSelect.value = "astar";
+    updateAlgorithmDescription();
+
+    profileSelect.innerHTML = "";
+    profiles.forEach((profile) => {
+      const option = new Option(profile.label, profile.id);
+      option.dataset.description = profile.description;
+      profileSelect.add(option);
+    });
+    updateCostDescription();
 
     startSelect.innerHTML = "";
     endSelect.innerHTML = "";
@@ -528,7 +563,28 @@ document.getElementById("algorithm-select").addEventListener("change", (e) => {
   document.getElementById("tsp-section").style.display = isTSP
     ? "flex"
     : "none";
+  document.querySelector(".algorithm-control .control-kicker").innerText =
+    isTSP ? "MULTI-STOP" : "GRAPH CORE";
+  updateAlgorithmDescription();
 });
+
+function updateAlgorithmDescription() {
+  const select = document.getElementById("algorithm-select");
+  const option = select.options[select.selectedIndex];
+  document.getElementById("algorithm-description").innerText =
+    option?.dataset.description || "Chọn cách mở rộng graph.";
+}
+
+function updateCostDescription() {
+  const select = document.getElementById("cost-profile-select");
+  const option = select.options[select.selectedIndex];
+  document.getElementById("cost-description").innerText =
+    option?.dataset.description || "Cân đối các yếu tố giao thông.";
+}
+
+document
+  .getElementById("cost-profile-select")
+  .addEventListener("change", updateCostDescription);
 
 document.getElementById("btn-select-all").addEventListener("click", () => {
   document
@@ -556,7 +612,7 @@ document.getElementById("btn-clear-all").addEventListener("click", () => {
 document.getElementById("btn-start").addEventListener("click", async () => {
   const algorithm = document.getElementById("algorithm-select").value;
   const start = document.getElementById("start-select").value;
-  const costType = document.querySelector('input[name="cost"]:checked').value;
+  const costProfile = document.getElementById("cost-profile-select").value;
 
   if (!start) return alert("Please select a start point.");
 
@@ -572,7 +628,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
       start,
       ...Array.from(state.selectedWaypoints).filter((id) => id !== start),
     ];
-    payload = { waypoints, cost_type: costType };
+    payload = { waypoints, cost_profile: costProfile };
   } else {
     const end = document.getElementById("end-select").value;
     if (!end) return alert("Please select an end point.");
@@ -583,7 +639,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
       start: start,
       end: end,
       algorithm: algorithm,
-      cost_type: costType,
+      cost_profile: costProfile,
     };
   }
 
@@ -674,6 +730,15 @@ function showLoading(show, message = "Loading...") {
 // ==========================================
 // INITIALIZE APP
 // ==========================================
-document.addEventListener("DOMContentLoaded", () => {
-  initMap();
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/config`);
+    if (!response.ok) throw new Error("Không thể tải cấu hình bản đồ.");
+    const config = await response.json();
+    GOONG_MAP_KEY = config.map_tiles_key || "";
+    initMap();
+  } catch (error) {
+    console.error("Config Error:", error);
+    showLoading(true, "Không thể tải cấu hình Goong Maps.");
+  }
 });

@@ -1,205 +1,70 @@
-﻿# 📋 CONTEXT.md: Bối Cảnh Dự Án
+# Bối cảnh dự án
 
-## 🎯 Tổng Quan Dự Án
+## Mục tiêu
 
-**Tên Dự Án:** Vietnamese Traffic Route Optimization  
-**Mục Đích:** Hệ thống trực quan hóa thuật toán tìm đường giao thông tối ưu tại Quận 1, TP.HCM  
-**Công Nghệ:** FastAPI (Backend) + Leaflet (Frontend) + Goong.io (Map Tiles)  
-**Ngôn Ngữ:** Python (Backend), JavaScript (Frontend), Tiếng Việt (Tài liệu)  
+Traffic Route Optimization minh họa cách mô hình hóa mạng lưới giao thông thành
+đồ thị và so sánh các cách tìm tuyến. Người dùng chọn node đầu/cuối, tiêu chí
+chi phí và quan sát tuyến được hoạt ảnh trên bản đồ Goong.
 
----
+## Kiến trúc hiện tại
 
-## 🏗️ Kiến Trúc Hệ Thống
+- `backend/app/api/main.py`: Flask app, CORS và các HTTP endpoint.
+- `backend/app/repositories/graph_data.py`: dữ liệu 56 node/edge đang dùng bởi
+  giao diện hiện tại.
+- `backend/app/algorithms/`: BFS, DFS, UCS, A*, Greedy dùng registry chung và
+  TSP legacy cho nhiều waypoint.
+- `backend/app/core/`: mô hình đồ thị, chi phí và vùng địa điểm.
+- `backend/app/services/multi_location_service.py`: dựng ma trận cost/path bằng
+  A* và tối ưu thứ tự waypoint bằng Nearest Neighbor.
+- `backend/app/services/food_places.py`: collector Goong Places API có retry,
+  giới hạn chunk và checkpoint.
+- `frontend/app.js`: khởi tạo Goong GL JS, tải graph/food places và hoạt ảnh.
 
-### Sơ Đồ Kiến Trúc
+API đã dùng `TrafficGraph` làm graph runtime cho BFS, DFS, UCS, A* và Greedy.
+Response được chuyển về format animation cũ để frontend có thể hiển thị frontier,
+visited và tuyến cuối mà không cần hai hệ thống dữ liệu song song.
+
+## Luồng chạy
+
+1. Backend nạp `.env` ở thư mục gốc (hoặc `backend/.env` để thuận tiện local).
+2. Frontend gọi `/api/config` để nhận duy nhất map tiles key.
+3. Frontend gọi `/api/algorithms`, `/api/cost-profiles`, `/api/nodes`, `/api/graph`
+   và `/api/food-places` để dựng selection và bản đồ.
+4. Khi tìm kiếm, frontend gọi `/api/search` hoặc `/api/tsp` và phát hoạt ảnh.
+   `/api/tsp` dùng pipeline A* + Nearest Neighbor cho nhiều điểm.
+
+## Dữ liệu địa điểm
+
+Vùng thu thập được định nghĩa bằng tứ giác trong `backend/app/core/food_area.py`.
+Collector lọc lại tọa độ từ Place Detail bằng phép kiểm tra điểm-trong-đa-giác,
+do đó các kết quả ngoài vùng không được ghi vào danh sách cuối. Kết quả runtime
+được lưu tại `backend/data/food_places.json`, bị Git bỏ qua để tránh đưa dữ liệu
+phụ thuộc API vào repository.
+
+Mặc định collector chia vùng thành 8 chunk (lưới 2x4), giữ tối đa 10 địa điểm
+mỗi chunk và kiểm tra tối đa 40 ID chi tiết mỗi chunk. Sau mỗi chunk, file JSON
+được ghi atomically để có thể tiếp tục sau lỗi mạng hoặc HTTP 429.
+
+## Selection và profile chi phí
+
+Frontend không hardcode danh sách thuật toán. Các lựa chọn graph core gồm BFS,
+DFS, UCS, A* và Greedy; TSP được hiển thị trong nhóm multi-stop. Cost profile
+gồm `balanced`, `shortest_distance`, `fastest_route` và `avoid_congestion`.
+
+## Bảo mật
+
+- `.env` không được commit.
+- REST API key chỉ tồn tại trong collector/backend.
+- Không log giá trị key và không hardcode key trong JavaScript.
+- Map key nên được giới hạn domain; REST key nên được giới hạn theo IP/quota trên
+  Goong khi môi trường triển khai hỗ trợ.
+- Dữ liệu Places cần được xem là dữ liệu cache có thể thay đổi, không phải nguồn
+  dữ liệu chính thức lâu dài.
+
+## Kiểm tra tối thiểu
+
+```powershell
+python -m py_compile backend\main.py backend\app\api\main.py backend\app\services\food_places.py
+node --check frontend\app.js
+python -m pytest backend\tests -q
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        USER BROWSER                                 │
-│  ┌──────────────────┐  ┌──────────────────────────────────────────┐ │
-│  │   LEAFLET MAP    │  │         CONTROL PANEL                    │ │
-│  │  • 56 Nodes      │  │  • Algorithm Selection (DFS/Greedy/TSP)  │ │
-│  │  • Edges         │  │  • Start/End Node Selection              │ │
-│  │  • Animation     │  │  • Cost Criteria (Distance/Time/Cost)    │ │
-│  │  • Path Highlight│  │  • Animation Speed Slider                │ │
-│  └──────────────────┘  │  • Start Search Button                   │ │
-│                        │  • Results Display                       │ │
-│                        └──────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     BACKEND SERVER (FastAPI)                         │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  API Endpoints:                                                │  │
-│  │  • GET  /api/graph      → Trả về toàn bộ đồ thị (nodes + edges)│  │
-│  │  • GET  /api/nodes      → Danh sách nodes cho dropdown         │  │
-│  │  • POST /api/search     → Tìm đường (DFS/Greedy)               │  │
-│  │  • POST /api/tsp        → Tối ưu lộ trình đa điểm              │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                     GOONG.IO API (Map Tiles)                      │
-│  • Cung cấp tile bản đồ Việt Nam (Quận 1, TP.HCM)                 │
-│  • URL: https://tiles.goong.io/map/{z}/{x}/{y}.png?api_key=...    │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-### Luồng Dữ Liệu
-```
-1. User chọn thuật toán + điểm bắt đầu/kết thúc
-2. Frontend gửi request → Backend (POST /api/search)
-3. Backend tính toán đường đi → Trả về path + animation_log
-4. Frontend hiển thị animation từng bước trên bản đồ
-```
-
----
-
-## 🔧 Công Nghệ Sử Dụng
-
-### Backend Stack
-| Công Nghệ | Phiên Bản | Mục Đích |
-|-----------|-----------|----------|
-| Python | 3.8+ | Ngôn ngữ chính |
-| FastAPI | 0.95+ | Web framework |
-| Uvicorn | latest | ASGI server |
-| Pydantic | latest | Data validation |
-| Python-dotenv | latest | Load environment variables |
-
-### Frontend Stack
-| Công Nghệ | Phiên Bản | Mục Đích |
-|-----------|-----------|----------|
-| HTML5 | - | Cấu trúc trang |
-| CSS3 | - | Styling (Minimalism) |
-| JavaScript (ES6+) | - | Logic + Animation |
-| Leaflet | 1.9.4 | Map rendering |
-| Goong.io Tiles | - | Vietnamese map provider |
-
----
-
-## 📊 Dữ Liệu Dự Án
-
-### Nguồn Dữ Liệu
-- **Nguồn:** Tọa độ thực tế các ngã tư, địa điểm ở Quận 1, TP.HCM
-- **Định Dạng:** CSV (id, name, lat, lng)
-- **Số Lượng:** 56 nodes
-- **Kết Nối:** Edges tự động sinh dựa trên khoảng cách Haversine
-
-### Cấu Trúc Dữ Liệu
-
-#### Nodes
-```json
-{
-  "1": {
-    "name": "Point 1",
-    "lat": 10.7918511,
-    "lng": 106.6958498
-  },
-  "2": {
-    "name": "Point 2",
-    "lat": 10.7902602,
-    "lng": 106.694281
-  },
-  
-}
-```
-
-#### Edges
-```json
-{
-  "from": "1",
-  "to": "2",
-  "distance_km": 0.456,
-  "time_min": 2,
-  "congestion": 5
-}
-```
-
-### Chi Tiết Thuộc Tính
-| Thuộc Tính | Mô Tả | Giá Trị |
-|------------|-------|--------|
-| `name` | Tên điểm | String |
-| `lat` | Vĩ độ | Float |
-| `lng` | Kinh độ | Float |
-| `distance_km` | Khoảng cách | Float (km) |
-| `time_min` | Thời gian di chuyển | Integer (phút) |
-| `congestion` | Mức độ kẹt xe | Integer (1-10) |
-
----
-
-## 🎓 Mục Đích Giáo Dục
-
-Dự án được thiết kế để:
-
-### 1. Học Thuật Toán Đồ Thị
-- **DFS (Depth-First Search):** Tìm kiếm theo chiều sâu
-- **Greedy Best-First Search:** Tìm kiếm tham lam dựa trên heuristic
-- **TSP (Traveling Salesman Problem):** Tối ưu lộ trình đa điểm
-
-### 2. Học Lập Trình Web
-- **Backend:** FastAPI + Python
-- **Frontend:** HTML/CSS/JavaScript
-- **Kết Nối:** Fetch API + RESTful API
-
-### 3. Học Trực Quan Hóa
-- Animation từng bước của thuật toán
-- Hiển thị trạng thái nodes (frontier, visited, optimal)
-- Đánh dấu đường đi tối ưu
-
-### 4. Học Làm Việc Với Bản Đồ
-- Sử dụng Leaflet cho bản đồ web
-- Tích hợp Goong.io (bản đồ Việt Nam)
-- Hiển thị markers, polylines
-
----
-
-## 🔗 Tài Nguyên Liên Quan
-
-### Tài Liệu Chính Thức
-- [Leaflet Documentation](https://leafletjs.com/reference-1.9.4.html)
-- [Goong.io API Docs](https://help.goong.io/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-
-### Tham Khảo Thuật Toán
-- [DFS Algorithm](https://en.wikipedia.org/wiki/Depth-first_search)
-- [Greedy Best-First Search](https://en.wikipedia.org/wiki/Best-first_search)
-- [Traveling Salesman Problem](https://en.wikipedia.org/wiki/Travelling_salesman_problem)
-
-### Công Cụ Phát Triển
-- [VS Code](https://code.visualstudio.com/)
-- [Postman](https://www.postman.com/) (Test API)
-- [Chrome DevTools](https://developer.chrome.com/docs/devtools/) (Debug)
-
----
-
-## 📝 Lịch Sử Phát Triển
-
-| Ngày | Phiên Bản | Thay Đổi |
-|------|-----------|----------|
-| 2026-07-25 | v1.0 | Khởi tạo dự án |
-| 2026-07-31 | v1.1 | Thêm 56 nodes từ CSV |
-| 2026-08-01 | v1.2 | Chuyển từ Goong JS SDK sang Leaflet |
-
----
-
-## 🤝 Đóng Góp
-
-### Cách Đóng Góp
-1. Fork repository
-2. Tạo branch mới (`git checkout -b feature/your-feature`)
-3. Commit thay đổi (`git commit -m "Thêm tính năng X"`)
-4. Push lên branch (`git push origin feature/your-feature`)
-5. Tạo Pull Request
-
-### Quy Tắc Đóng Góp
-- Code phải format đúng (PEP 8 / Standard JS)
-- Có comments giải thích cho hàm phức tạp
-- Cập nhật tài liệu khi thay đổi API
-- Không commit file `.env`
-
----
-
-## 📜 Giấy Phép
-
-MIT License - Xem file [LICENSE](LICENSE) để biết chi tiết.

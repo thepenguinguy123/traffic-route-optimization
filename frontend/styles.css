@@ -52,7 +52,7 @@
 }
 
 body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Inter", "Segoe UI", sans-serif;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
     overflow: hidden;
@@ -132,6 +132,26 @@ body {
     color: var(--color-text-secondary);
 }
 
+.control-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+.control-kicker {
+    color: #8a6a2f;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.control-hint {
+    color: #6e6a61;
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
 /* Select Inputs */
 .select-wrapper {
     position: relative;
@@ -148,6 +168,14 @@ body {
     font-family: inherit;
     appearance: none;
     outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.select:hover,
+.select:focus {
+    background: #ece9e0;
+    border-color: #8a6a2f;
 }
 
 /* TSP Section */

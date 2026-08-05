@@ -55,6 +55,8 @@ logs/
 # Backend specific
 # ==========================================
 backend/nodes_temp.txt
+backend/data/food_places.json
+backend/data/food_places.json.tmp
 
 # Frontend specific
 # ==========================================

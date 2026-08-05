@@ -1,0 +1,50 @@
+{
+  "profiles": {
+    "normal": {
+      "description": "Giao thông bình thường",
+      "edge_overrides": []
+    },
+    "rush_hour": {
+      "description": "Giao thông giờ cao điểm",
+      "edge_overrides": [
+        {
+          "source": "N01",
+          "target": "N02",
+          "congestion_level": 4
+        },
+        {
+          "source": "N02",
+          "target": "N01",
+          "congestion_level": 4
+        },
+        {
+          "source": "N01",
+          "target": "N06",
+          "congestion_level": 5
+        },
+        {
+          "source": "N06",
+          "target": "N01",
+          "congestion_level": 5
+        }
+      ]
+    },
+    "incident": {
+      "description": "Sự cố giao thông và đường bị đóng",
+      "edge_overrides": [
+        {
+          "source": "N01",
+          "target": "N06",
+          "is_closed": true,
+          "risk_level": 5
+        },
+        {
+          "source": "N04",
+          "target": "N06",
+          "congestion_level": 4,
+          "risk_level": 5
+        }
+      ]
+    }
+  }
+}

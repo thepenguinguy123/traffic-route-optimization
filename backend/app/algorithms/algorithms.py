@@ -1,7 +1,12 @@
 ﻿import time
 import heapq
 from typing import Dict, List, Any, Tuple, Optional
-from app.repositories.graph_data import NODES, EDGES, calculate_cost, haversine_distance
+from ..repositories.graph_data import (
+    NODES,
+    EDGES,
+    calculate_cost,
+    haversine_distance,
+)
 
 # Build adjacency list for faster lookup
 def get_adj_list() -> Dict[str, List[Dict[str, Any]]]:
