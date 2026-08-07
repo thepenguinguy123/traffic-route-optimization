@@ -201,6 +201,45 @@ body {
     transition: var(--transition-fast);
 }
 
+#btn-compare {
+    width: 100%;
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.panel-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.metrics-table-wrap {
+    overflow-x: auto;
+}
+
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.metrics-table th,
+.metrics-table td {
+    border-bottom: 1px solid #c7c1b5;
+    padding: 7px 5px;
+    text-align: left;
+}
+
+.metrics-table th {
+    color: #8a6a2f;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 .btn-small:hover {
     background: var(--color-bg-glass);
     color: var(--color-text-primary);

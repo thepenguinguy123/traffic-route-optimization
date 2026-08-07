@@ -56,13 +56,13 @@
                     <p id="algorithm-description" class="control-hint">Chọn cách mở rộng graph.</p>
                 </div>
                 <div class="control-group" id="start-group">
-                    <label for="start-select">Start Node</label>
+                    <label for="start-select">Start Food Place</label>
                     <select id="start-select" class="select">
                         <option value="">Loading nodes...</option>
                     </select>
                 </div>
                 <div class="control-group" id="end-group">
-                    <label for="end-select">End Node</label>
+                    <label for="end-select">End Food Place</label>
                     <select id="end-select" class="select">
                         <option value="">Loading nodes...</option>
                     </select>
@@ -99,10 +99,31 @@
                 </div>
                 <div class="action-buttons">
                     <button id="btn-start" class="btn-primary">Start Search</button>
+                    <button id="btn-compare" class="btn-secondary">Compare Algorithms</button>
                     <div class="playback-controls" style="display: none;">
                         <button id="btn-pause" class="btn-secondary">Pause</button>
                         <button id="btn-resume" class="btn-secondary" style="display: none;">Resume</button>
                         <button id="btn-reset" class="btn-secondary">Reset</button>
+                    </div>
+                </div>
+                <div id="metrics-panel" style="display: none;" class="glass-panel metrics-panel">
+                    <div class="panel-heading-row">
+                        <h3>Algorithm Metrics</h3>
+                        <span id="metrics-profile" class="control-kicker"></span>
+                    </div>
+                    <div class="metrics-table-wrap">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Algorithm</th>
+                                    <th>Found</th>
+                                    <th>Explored</th>
+                                    <th>Time</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metrics-table-body"></tbody>
+                        </table>
                     </div>
                 </div>
                 <div id="results-panel" style="display: none;" class="glass-panel">

@@ -1,4 +1,4 @@
-"""Greedy best-first search trên traffic graph core."""
+"""Greedy Best-First Search trên traffic graph core."""
 
 from heapq import heappop, heappush
 from itertools import count
@@ -16,13 +16,19 @@ def search(
     goal: str,
     profile: CostProfile,
 ) -> SearchResult:
-    """Tìm tuyến bằng cách ưu tiên node gần đích theo Haversine."""
+    """Tìm tuyến bằng cách ưu tiên node có heuristic gần đích nhất."""
 
     started_at = perf_counter()
     graph.get_node(start)
     graph.get_node(goal)
     insertion_order = count()
-    frontier = [(graph.estimate_straight_line_distance(start, goal), next(insertion_order), start)]
+    frontier = [
+        (
+            graph.estimate_straight_line_distance(start, goal),
+            next(insertion_order),
+            start,
+        )
+    ]
     parents: dict[str, str | None] = {start: None}
     depths = {start: 0}
     discovered = {start}
@@ -36,14 +42,16 @@ def search(
         if current == goal:
             path = reconstruct_path(parents, current)
         else:
-            neighbors = graph.get_traversable_neighbors(current)
-            for neighbor in neighbors:
+            for neighbor in graph.get_traversable_neighbors(current):
                 if neighbor in discovered:
                     continue
                 discovered.add(neighbor)
                 parents[neighbor] = current
                 depths[neighbor] = depths[current] + 1
-                heuristic = graph.estimate_straight_line_distance(neighbor, goal)
+                heuristic = graph.estimate_straight_line_distance(
+                    neighbor,
+                    goal,
+                )
                 heappush(frontier, (heuristic, next(insertion_order), neighbor))
 
         frontier_steps.append(
@@ -53,7 +61,10 @@ def search(
                     node_id=current,
                     parent_id=parents[current],
                     depth=depths[current],
-                    h_cost=graph.estimate_straight_line_distance(current, goal),
+                    h_cost=graph.estimate_straight_line_distance(
+                        current,
+                        goal,
+                    ),
                 ),
                 visited=list(visited_order),
                 frontier=[
@@ -72,7 +83,7 @@ def search(
             break
 
     return build_search_result(
-        algorithm="greedy",
+        algorithm="greedy_best_first",
         graph=graph,
         profile=profile,
         path=path,

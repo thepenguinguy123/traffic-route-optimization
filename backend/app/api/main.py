@@ -1,7 +1,5 @@
 """HTTP API cho traffic graph core và giao diện mô phỏng tuyến đường."""
 
-import json
-import math
 import os
 from dataclasses import asdict
 from pathlib import Path
@@ -11,15 +9,18 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from ..algorithms.registry import ALGORITHM_REGISTRY
-from ..core.cost import CostCalculator
 from ..core.cost_profiles import COST_PROFILES
 from ..core.errors import NodeNotFoundError
 from ..core.food_area import point_in_polygon
 from ..core.graph import TrafficGraph
-from ..core.models import RoadEdge, TrafficNode
 from ..core.search_models import SearchResult
-from ..repositories.graph_data import EDGES, NODES
+from ..repositories.graph_data import NODES
+from ..repositories.clean_dataset_repository import load_clean_graph
 from ..services.multi_location_service import MultiLocationService
+from ..services.metrics_service import (
+    DEFAULT_COMPARISON_ALGORITHMS,
+    MetricsService,
+)
 
 
 project_env = Path(__file__).resolve().parents[3] / ".env"
@@ -28,7 +29,15 @@ load_dotenv(backend_env)
 load_dotenv(project_env, override=True)
 
 app = Flask(__name__)
-CORS(app)
+allowed_origins = tuple(
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:8080,http://127.0.0.1:8080",
+    ).split(",")
+    if origin.strip()
+)
+CORS(app, origins=allowed_origins)
 
 ALGORITHM_OPTIONS = [
     {
@@ -56,9 +65,15 @@ ALGORITHM_OPTIONS = [
         "group": "graph_core",
     },
     {
-        "id": "greedy",
-        "label": "Greedy",
-        "description": "Ưu tiên node gần đích nhất.",
+        "id": "greedy_best_first",
+        "label": "Greedy Best-First",
+        "description": "Ưu tiên node gần đích theo heuristic.",
+        "group": "graph_core",
+    },
+    {
+        "id": "ida_star",
+        "label": "IDA*",
+        "description": "A* với bộ nhớ thấp và deepening bound.",
         "group": "graph_core",
     },
     {
@@ -78,34 +93,9 @@ COST_OPTIONS = [
 
 
 def build_traffic_graph() -> TrafficGraph:
-    """Chuyển dữ liệu legacy sang graph core dùng chung cho API."""
+    """Tải đúng graph sạch từ nodes_clean.js và edges_clean.js."""
 
-    graph = TrafficGraph(CostCalculator())
-    for node_id, node in NODES.items():
-        graph.add_node(
-            TrafficNode(
-                id=node_id,
-                name=node["name"],
-                node_type="intersection",
-                latitude=node["lat"],
-                longitude=node["lng"],
-            )
-        )
-
-    for edge in EDGES:
-        graph.add_edge(
-            RoadEdge(
-                source=edge["from"],
-                target=edge["to"],
-                distance_km=edge["distance_km"],
-                base_time_min=edge["time_min"],
-                congestion_level=max(1, min(5, math.ceil(edge["congestion"] / 2))),
-                road_type="main_road",
-                risk_level=0,
-                restriction="none",
-            )
-        )
-    return graph
+    return load_clean_graph()
 
 
 TRAFFIC_GRAPH = build_traffic_graph()
@@ -122,6 +112,11 @@ def graph_response() -> dict:
             "lat": node["latitude"],
             "lng": node["longitude"],
             "type": node["node_type"],
+            **{
+                key: value
+                for key, value in node.items()
+                if key not in {"id", "name", "latitude", "longitude", "node_type"}
+            },
         }
         for node in graph["nodes"]
     }
@@ -131,7 +126,9 @@ def graph_response() -> dict:
             "to": edge["target"],
             "distance_km": edge["distance_km"],
             "time_min": edge["base_time_min"],
-            "congestion": edge["congestion_level"] * 2,
+            "congestion": edge["congestion_level"],
+            "road_type": edge["road_type"],
+            "risk_factor": edge["risk_factor"],
         }
         for edge in graph["edges"]
     ]
@@ -219,6 +216,39 @@ def get_cost_profiles():
     return jsonify(COST_OPTIONS)
 
 
+@app.route("/api/metrics", methods=["POST"])
+def compare_metrics():
+    """So sánh metrics của nhiều thuật toán trên cùng một cặp node."""
+
+    data = request.get_json(silent=True) or {}
+    start = str(data.get("start", ""))
+    goal = str(data.get("end", data.get("goal", "")))
+    profile = profile_from_request(data)
+    algorithm_names = data.get("algorithms", DEFAULT_COMPARISON_ALGORITHMS)
+    if not start or not goal or not isinstance(algorithm_names, (list, tuple)):
+        return jsonify({"error": "Thiếu start, end hoặc algorithms hợp lệ."}), 400
+    if not TRAFFIC_GRAPH.has_node(start) or not TRAFFIC_GRAPH.has_node(goal):
+        return jsonify({"error": "Node bắt đầu hoặc kết thúc không hợp lệ."}), 400
+    try:
+        results = MetricsService.compare_algorithms(
+            TRAFFIC_GRAPH,
+            start,
+            goal,
+            profile,
+            algorithm_names,
+        )
+    except (KeyError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(
+        {
+            "start": start,
+            "end": goal,
+            "cost_profile": profile,
+            "metrics": MetricsService.format_summary_metrics(results),
+        }
+    )
+
+
 @app.route("/api/graph", methods=["GET"])
 def get_graph():
     """Trả graph core theo format GeoJSON adapter của frontend."""
@@ -232,7 +262,12 @@ def get_nodes():
 
     return jsonify(
         [
-            {"id": node_id, "name": node["name"]}
+            {
+                "id": node_id,
+                "name": node["name"],
+                "type": node.get("type", "intersection"),
+                "address": node.get("address", ""),
+            }
             for node_id, node in sorted(NODES.items(), key=lambda item: item[0])
         ]
     )
@@ -242,19 +277,26 @@ def get_nodes():
 def get_food_places():
     """Trả tối đa 40 địa điểm nằm trong vùng lọc."""
 
-    food_file = Path(__file__).resolve().parents[2] / "data" / "food_places.json"
-    if not food_file.exists():
-        return jsonify({"count": 0, "places": [], "message": "Chưa có dữ liệu quán ăn."})
-    try:
-        data = json.loads(food_file.read_text(encoding="utf-8"))
-        places = [
-            place
-            for place in data.get("places", [])
-            if point_in_polygon(float(place["lat"]), float(place["lng"]))
-        ][:40]
-        return jsonify({"count": len(places), "places": places})
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-        return jsonify({"error": f"Không thể đọc dữ liệu quán ăn: {error}"}), 500
+    places = []
+    for node_id, node in NODES.items():
+        if node.get("type") != "food":
+            continue
+        places.append(
+            {
+                "id": node_id,
+                "name": node["name"],
+                "address": node.get("address", ""),
+                "lat": node["lat"],
+                "lng": node["lng"],
+                "type": "food",
+                "source": node.get("source", "clean_dataset"),
+                "on_edge": node.get("on_edge"),
+                "within_food_area": point_in_polygon(
+                    float(node["lat"]), float(node["lng"])
+                ),
+            }
+        )
+    return jsonify({"count": len(places), "places": places})
 
 
 @app.route("/api/search", methods=["POST"])
@@ -348,4 +390,5 @@ def tsp_route():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(host="127.0.0.1", port=8000, debug=debug)
