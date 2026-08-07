@@ -1,6 +1,6 @@
 """Hình học vùng tìm kiếm quán ăn."""
 
-from typing import Iterable, List, Sequence, Tuple
+from typing import Iterable, Sequence, Tuple
 
 
 # Thứ tự dữ liệu đầu vào: (lat, lng), đi theo chu vi tứ giác.

@@ -9,8 +9,8 @@
 - Frontend HTML/CSS/JavaScript dùng Goong GL JS.
 - Bộ thu thập dữ liệu Goong Places API hỗ trợ 8 chunk, giới hạn số địa điểm,
   retry khi bị giới hạn tốc độ và ghi checkpoint sau từng chunk.
-- API dùng `TrafficGraph` làm nguồn graph duy nhất cho BFS/DFS/UCS/A*/Greedy.
-  TSP vẫn dùng route nhiều waypoint riêng để giữ trải nghiệm hiện tại.
+- API dùng `TrafficGraph` làm nguồn graph duy nhất cho BFS/DFS/UCS/A*/Greedy Best-First/IDA*.
+  TSP dùng cùng graph này để tính ma trận chặng trước khi chạy Nearest Neighbor.
 
 ## Cấu trúc thư mục
 
@@ -19,11 +19,13 @@ backend/
 ├── main.py                         # Điểm vào tương thích: python main.py
 ├── app/
 │   ├── api/main.py                 # Flask routes và cấu hình công khai
-│   ├── algorithms/                 # Thuật toán legacy và thuật toán mới
+│   ├── algorithms/                 # Các thuật toán graph core và heuristic
 │   ├── core/                       # Mô hình, chi phí, vùng dữ liệu
 │   ├── repositories/               # Dữ liệu đồ thị và JSON repository
 │   └── services/                   # Route search và Goong Places collector
-├── data/prototype/                 # Dữ liệu mẫu được quản lý trong Git
+├── data/
+│   ├── nodes_clean.js              # 98 node, gồm giao lộ, access và food node
+│   └── edges_clean.js              # 176 cạnh có hướng
 └── tests/                          # Test tự động
 frontend/
 ├── index.html
@@ -83,10 +85,16 @@ Mở `http://localhost:8080`. Backend chạy tại `http://localhost:8000`.
 - `GET /api/nodes` — danh sách node cho bộ chọn.
 - `GET /api/algorithms` — danh sách thuật toán cho selection.
 - `GET /api/cost-profiles` — danh sách profile chi phí cho selection.
-- `GET /api/food-places` — tối đa 40 địa điểm nằm trong tứ giác vùng ăn uống.
+- `GET /api/food-places` — 39 food node từ dataset, kèm cờ `within_food_area`.
 - `GET /api/config` — chỉ trả về map tiles key cho frontend.
-- `POST /api/search` — tìm đường với `bfs`, `dfs`, `ucs`, `astar` hoặc `greedy`.
+- `POST /api/search` — tìm đường với `bfs`, `dfs`, `ucs`, `astar`, `greedy_best_first` hoặc `ida_star`.
+- `POST /api/metrics` — so sánh BFS, DFS, Dijkstra, UCS, A*, IDA* và Greedy Best-First.
 - `POST /api/tsp` — A* dựng ma trận chi phí, sau đó Nearest Neighbor tối ưu tuyến qua nhiều node.
+
+Graph runtime đọc trực tiếp `backend/data/nodes_clean.js` và
+`backend/data/edges_clean.js`. Đây là file JavaScript chứa JSON array, không phải
+JSON thuần; loader trong `backend/app/repositories/clean_dataset_repository.py`
+đọc array và giữ lại metadata như `address`, `source`, `on_edge`.
 
 ## Thu thập địa điểm Goong
 
@@ -96,7 +104,7 @@ Chạy từ thư mục `backend`:
 python -m app.services.food_places --step 0.004 --radius 0.7 --limit 20 --delay 5 --chunks 8 --max-per-chunk 10 --max-detail-per-chunk 40
 ```
 
-Kết quả được ghi sau mỗi chunk vào `backend/data/food_places.json`. Chạy lại sẽ
+Kết quả collector được ghi sau mỗi chunk vào `backend/data/food_places.json`. Chạy lại sẽ
 tiếp tục từ checkpoint nếu các tham số vùng và số chunk khớp. Muốn quét lại từ
 đầu, thêm `--no-resume`. Dữ liệu này là artifact cục bộ, không commit lên Git.
 
@@ -111,7 +119,9 @@ Vùng lọc là tứ giác cố định trong `backend/app/core/food_area.py`:
 
 Collector vẫn kiểm tra tọa độ chi tiết bằng phép kiểm tra điểm-trong-đa-giác;
 việc một địa điểm xuất hiện trong kết quả tìm kiếm không đồng nghĩa nó được giữ
-lại nếu nằm ngoài tứ giác.
+lại nếu nằm ngoài tứ giác. Runtime graph và endpoint `/api/food-places` vẫn giữ
+đủ 39 food node trong `nodes_clean.js`; trường `within_food_area` cho biết kết
+quả có nằm trong vùng cũ hay không.
 
 Frontend lấy danh sách thuật toán và tiêu chí tối ưu từ `/api/algorithms` và
 `/api/cost-profiles`, nên selection không cần sửa HTML khi thêm lựa chọn tương

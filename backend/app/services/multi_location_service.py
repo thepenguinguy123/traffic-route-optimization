@@ -104,9 +104,15 @@ class MultiLocationService:
             total_distance += distance_matrix.get(source, {}).get(target, 0.0)
             total_time += time_matrix.get(source, {}).get(target, 0.0)
 
+        all_waypoints_reached = not nearest["unvisited_left"]
+        return_trip_completed = (
+            not return_to_start
+            or visiting_order[-1] == start_node
+        )
+
         return {
             "algorithm": "nearest_neighbor",
-            "found": len(visiting_order) > 1,
+            "found": all_waypoints_reached and return_trip_completed,
             "visiting_order": visiting_order,
             "path": full_path or [start_node],
             "total_cost": nearest["total_cost"],

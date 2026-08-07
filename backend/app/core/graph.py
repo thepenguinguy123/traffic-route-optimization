@@ -207,6 +207,7 @@ class TrafficGraph:
                     "node_type": node.node_type,
                     "latitude": node.latitude,
                     "longitude": node.longitude,
+                    **node.metadata,
                 }
                 for node in nodes
             ],
@@ -221,6 +222,7 @@ class TrafficGraph:
                     "risk_level": edge.risk_level,
                     "restriction": edge.restriction,
                     "is_closed": edge.is_closed,
+                    "risk_factor": edge.risk_factor,
                 }
                 for edge in edges
             ],

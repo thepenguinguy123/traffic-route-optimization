@@ -45,6 +45,33 @@ let state = {
 // ==========================================
 
 /**
+ * Ẩn các biểu tượng POI có sẵn trong style nền Goong, nhưng giữ lại tên đường
+ * và nhãn văn bản của bản đồ. Các node của graph được vẽ bằng layer riêng.
+ */
+function hideGoongPoiIcons() {
+  const layers = state.map.getStyle()?.layers || [];
+  let hiddenCount = 0;
+
+  layers
+    .filter(
+      (layer) =>
+        layer.type === "symbol" &&
+        layer.layout &&
+        Object.prototype.hasOwnProperty.call(layer.layout, "icon-image"),
+    )
+    .forEach((layer) => {
+      try {
+        state.map.setPaintProperty(layer.id, "icon-opacity", 0);
+        hiddenCount += 1;
+      } catch (error) {
+        console.warn(`[Map] Không thể ẩn icon layer ${layer.id}:`, error);
+      }
+    });
+
+  console.log(`[Map] Đã ẩn ${hiddenCount} lớp icon POI của Goong.`);
+}
+
+/**
  * Khởi tạo bản đồ vector chính thức của Goong.
  */
 function initMap() {
@@ -74,6 +101,7 @@ function initMap() {
   state.map.addControl(new goongjs.NavigationControl(), "top-right");
   state.map.on("load", () => {
     console.log("[Map] Goong GL JS map ready ✅");
+    hideGoongPoiIcons();
     showLoading(true, "Loading graph data...");
     loadGraph()
       .then(() => populateDropdowns())
@@ -154,6 +182,8 @@ function renderNodes(nodes) {
         type: node.type || "intersection",
         status: "reset",
         name: node.name,
+        address: node.address || "",
+        source: node.source || "",
       },
       geometry: { type: "Point", coordinates: [node.lng, node.lat] },
     };
@@ -189,9 +219,10 @@ function renderNodes(nodes) {
 
   state.map.on("click", "graph-nodes-layer", (event) => {
     const node = event.features[0].properties;
+    const address = node.address ? `<br>${node.address}` : "";
     new goongjs.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(event.lngLat)
-      .setHTML(`<strong>${node.name}</strong>`)
+      .setHTML(`<strong>${node.name}</strong>${address}`)
       .addTo(state.map);
   });
   state.map.on("mouseenter", "graph-nodes-layer", () => {
@@ -504,12 +535,20 @@ async function populateDropdowns() {
     tspList.innerHTML = "";
 
     nodes.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    const foodNodes = nodes.filter(
+      (node) => node.type === "food",
+    );
 
-    nodes.forEach((n) => {
-      const label = n.name || `Node ${n.id}`;
+    foodNodes.forEach((n) => {
+      const nodeKind = n.type === "food" ? "Food" : "Giao lộ";
+      const label = `${nodeKind} · ${n.name || `Node ${n.id}`} (#${n.id})`;
       startSelect.add(new Option(label, n.id));
       endSelect.add(new Option(label, n.id));
+    });
 
+    nodes.forEach((n) => {
+      const nodeKind = n.type === "food" ? "Food" : "Giao lộ";
+      const label = `${nodeKind} · ${n.name || `Node ${n.id}`} (#${n.id})`;
       const div = document.createElement("div");
       div.className = "waypoint-item";
       div.innerHTML = `
@@ -535,19 +574,12 @@ async function populateDropdowns() {
  */
 async function loadGraph() {
   try {
-    const [graphResponse, foodResponse] = await Promise.all([
-      fetch(`${API_BASE}/api/graph`),
-      fetch(`${API_BASE}/api/food-places`),
-    ]);
+    const graphResponse = await fetch(`${API_BASE}/api/graph`);
     if (!graphResponse.ok) throw new Error("Failed to load graph");
     const data = await graphResponse.json();
-    const foodData = foodResponse.ok
-      ? await foodResponse.json()
-      : { places: [] };
     state.graphData = data;
     renderEdges(data.edges, data.nodes);
     renderNodes(data.nodes);
-    renderFoodPlaces(foodData.places || []);
     constrainMapToGraph(data.nodes);
   } catch (err) {
     console.error("Error loading graph:", err);
@@ -565,6 +597,7 @@ document.getElementById("algorithm-select").addEventListener("change", (e) => {
     : "none";
   document.querySelector(".algorithm-control .control-kicker").innerText =
     isTSP ? "MULTI-STOP" : "GRAPH CORE";
+  document.getElementById("btn-compare").disabled = isTSP;
   updateAlgorithmDescription();
 });
 
@@ -605,6 +638,59 @@ document.getElementById("btn-clear-all").addEventListener("click", () => {
   state.selectedWaypoints.clear();
   document.getElementById("tsp-count").innerText = "0";
 });
+
+document.getElementById("btn-compare").addEventListener("click", async () => {
+  const start = document.getElementById("start-select").value;
+  const end = document.getElementById("end-select").value;
+  const profile = document.getElementById("cost-profile-select").value;
+  if (!start || !end) {
+    alert("Please select start and end food places first.");
+    return;
+  }
+  if (start === end) {
+    alert("Start and end food places cannot be the same.");
+    return;
+  }
+
+  const button = document.getElementById("btn-compare");
+  button.disabled = true;
+  button.innerText = "Comparing...";
+  try {
+    const response = await fetch(`${API_BASE}/api/metrics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start, end, cost_profile: profile }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Metrics failed");
+    renderMetrics(data.metrics, profile);
+  } catch (error) {
+    console.error("Metrics Error:", error);
+    alert(`Metrics error: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.innerText = "Compare Algorithms";
+  }
+});
+
+function renderMetrics(metrics, profile) {
+  const panel = document.getElementById("metrics-panel");
+  const body = document.getElementById("metrics-table-body");
+  document.getElementById("metrics-profile").innerText = profile;
+  body.innerHTML = metrics
+    .map(
+      (metric) => `
+        <tr>
+          <td>${metric.algorithm}</td>
+          <td>${metric.found ? "✓" : "—"}</td>
+          <td>${metric.explored_nodes}</td>
+          <td>${metric.processing_time_ms.toFixed(2)} ms</td>
+          <td>${metric.total_cost ?? "—"}</td>
+        </tr>`,
+    )
+    .join("");
+  panel.style.display = "block";
+}
 
 // ==========================================
 // START SEARCH

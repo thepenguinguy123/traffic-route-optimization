@@ -1,5 +1,6 @@
 """Điểm vào tương thích để chạy backend bằng `python main.py`."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,4 +14,5 @@ from backend.app.api.main import app
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(host="127.0.0.1", port=8000, debug=debug)

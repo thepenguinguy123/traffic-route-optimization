@@ -1,0 +1,1006 @@
+// nodes_clean.js — Dữ liệu đồ thị giao thông (HCMUS AI Lab 1)
+// Nguồn: toado_fixed.csv (ngã giao id 1-56) + food_places.json (quán id 1001-1039)
+// Tổng: 98 nodes (56 ngã giao + 39 địa điểm ăn uống + 3 access node)
+// Sinh tự động bởi Build_Dataset.py + build_food.py — KHÔNG sửa tay.
+const NODES_CLEAN = [
+  {
+    "id": 1,
+    "name": "Ngã giao Nguyễn Phi Khanh - Võ Thị Sáu",
+    "lat": 10.7918511,
+    "lng": 106.6958498,
+    "type": "intersection"
+  },
+  {
+    "id": 2,
+    "name": "Ngã giao Võ Thị Sáu - Đường Phan Liêm",
+    "lat": 10.7902602,
+    "lng": 106.694281,
+    "type": "intersection"
+  },
+  {
+    "id": 3,
+    "name": "Ngã giao Hai Bà Trưng - Võ Thị Sáu",
+    "lat": 10.7878881,
+    "lng": 106.6919386,
+    "type": "intersection"
+  },
+  {
+    "id": 4,
+    "name": "Ngã giao Phạm Ngọc Thạch - Võ Thị Sáu",
+    "lat": 10.7870447,
+    "lng": 106.6911124,
+    "type": "intersection"
+  },
+  {
+    "id": 5,
+    "name": "Ngã giao Pasteur - Võ Thị Sáu",
+    "lat": 10.7859034,
+    "lng": 106.689985,
+    "type": "intersection"
+  },
+  {
+    "id": 6,
+    "name": "Ngã giao Nam Kỳ Khởi Nghĩa - Võ Thị Sáu",
+    "lat": 10.7849539,
+    "lng": 106.6891118,
+    "type": "intersection"
+  },
+  {
+    "id": 7,
+    "name": "Ngã giao Nguyễn Văn Giai - Đinh Tiên Hoàng",
+    "lat": 10.7908431,
+    "lng": 106.6970064,
+    "type": "intersection"
+  },
+  {
+    "id": 8,
+    "name": "Ngã giao Huỳnh Khương Ninh - Đinh Tiên Hoàng",
+    "lat": 10.7903462,
+    "lng": 106.6965149,
+    "type": "intersection"
+  },
+  {
+    "id": 9,
+    "name": "Ngã giao Huỳnh Khương Ninh - Đường Phan Tôn",
+    "lat": 10.7899509,
+    "lng": 106.6961407,
+    "type": "intersection"
+  },
+  {
+    "id": 10,
+    "name": "Ngã giao Huỳnh Khương Ninh - Đường Phan Liêm",
+    "lat": 10.7892052,
+    "lng": 106.6954145,
+    "type": "intersection"
+  },
+  {
+    "id": 11,
+    "name": "Ngã giao Nam Kỳ Khởi Nghĩa - Điện Biên Phủ",
+    "lat": 10.7834747,
+    "lng": 106.6907609,
+    "type": "intersection"
+  },
+  {
+    "id": 12,
+    "name": "Ngã giao Ðiện Biên Phủ - Đinh Tiên Hoàng",
+    "lat": 10.7903735,
+    "lng": 106.6974895,
+    "type": "intersection"
+  },
+  {
+    "id": 13,
+    "name": "Ngã giao Điện Biên Phủ - Đường Cây Điệp",
+    "lat": 10.7898822,
+    "lng": 106.6970413,
+    "type": "intersection"
+  },
+  {
+    "id": 14,
+    "name": "Ngã giao Điện Biên Phủ - Đường Phan Tôn",
+    "lat": 10.7894648,
+    "lng": 106.6966329,
+    "type": "intersection"
+  },
+  {
+    "id": 15,
+    "name": "Ngã giao Điện Biên Phủ - Đường Phan Liêm",
+    "lat": 10.7887819,
+    "lng": 106.6959752,
+    "type": "intersection"
+  },
+  {
+    "id": 16,
+    "name": "Ngã giao Mạc Đĩnh Chi - Điện Biên Phủ",
+    "lat": 10.7883731,
+    "lng": 106.6955677,
+    "type": "intersection"
+  },
+  {
+    "id": 17,
+    "name": "Điểm trên đường Điện Biên Phủ",
+    "lat": 10.7880648,
+    "lng": 106.6952431,
+    "type": "intersection"
+  },
+  {
+    "id": 18,
+    "name": "Ngã giao Phùng Khắc Khoan - Điện Biên Phủ",
+    "lat": 10.7875383,
+    "lng": 106.6947312,
+    "type": "intersection"
+  },
+  {
+    "id": 19,
+    "name": "Ngã giao Hai Bà Trưng - Điện Biên Phủ",
+    "lat": 10.7864692,
+    "lng": 106.6937058,
+    "type": "intersection"
+  },
+  {
+    "id": 20,
+    "name": "Ngã giao Trương Quyền - Điện Biên Phủ",
+    "lat": 10.7860735,
+    "lng": 106.693321,
+    "type": "intersection"
+  },
+  {
+    "id": 21,
+    "name": "Ngã giao Phạm Ngọc Thạch - Điện Biên Phủ",
+    "lat": 10.7855176,
+    "lng": 106.6927936,
+    "type": "intersection"
+  },
+  {
+    "id": 22,
+    "name": "Ngã giao Pasteur - Điện Biên Phủ",
+    "lat": 10.7843547,
+    "lng": 106.691675,
+    "type": "intersection"
+  },
+  {
+    "id": 23,
+    "name": "Ngã giao Nguyễn Văn Thủ - Đinh Tiên Hoàng",
+    "lat": 10.7894405,
+    "lng": 106.6985103,
+    "type": "intersection"
+  },
+  {
+    "id": 24,
+    "name": "Ngã giao Nguyễn Văn Thủ - Đường Cây Điệp",
+    "lat": 10.7889364,
+    "lng": 106.6980613,
+    "type": "intersection"
+  },
+  {
+    "id": 25,
+    "name": "Ngã giao Nguyễn Văn Thủ - Đường Trần Doãn Khanh",
+    "lat": 10.7885592,
+    "lng": 106.6977187,
+    "type": "intersection"
+  },
+  {
+    "id": 26,
+    "name": "Ngã giao Đinh Tiên Hoàng - Đường Nguyễn Thành Ý",
+    "lat": 10.7899243,
+    "lng": 106.6979905,
+    "type": "intersection"
+  },
+  {
+    "id": 27,
+    "name": "Ngã giao Đường Cây Điệp - Đường Nguyễn Thành Ý",
+    "lat": 10.7894026,
+    "lng": 106.6975383,
+    "type": "intersection"
+  },
+  {
+    "id": 28,
+    "name": "Ngã giao Đường Nguyễn Thành Ý - Đường Trần Doãn Khanh",
+    "lat": 10.7890503,
+    "lng": 106.6971662,
+    "type": "intersection"
+  },
+  {
+    "id": 29,
+    "name": "Ngã giao Mạc Đĩnh Chi - Nguyễn Văn Thủ",
+    "lat": 10.7874246,
+    "lng": 106.6966256,
+    "type": "intersection"
+  },
+  {
+    "id": 30,
+    "name": "Ngã giao Nguyễn Văn Thủ - Phùng Khắc Khoan",
+    "lat": 10.7865695,
+    "lng": 106.6957979,
+    "type": "intersection"
+  },
+  {
+    "id": 31,
+    "name": "Ngã giao Hai Bà Trưng - Nguyễn Văn Thủ",
+    "lat": 10.785581,
+    "lng": 106.6948634,
+    "type": "intersection"
+  },
+  {
+    "id": 32,
+    "name": "Ngã giao Nam Kỳ Khởi Nghĩa - Nguyễn Đình Chiểu",
+    "lat": 10.7814733,
+    "lng": 106.6929031,
+    "type": "intersection"
+  },
+  {
+    "id": 33,
+    "name": "Ngã giao Nguyễn Đình Chiểu - Đinh Tiên Hoàng",
+    "lat": 10.7884831,
+    "lng": 106.6995536,
+    "type": "intersection"
+  },
+  {
+    "id": 34,
+    "name": "Ngã giao Nguyễn Đình Chiểu - Đường Cây Điệp",
+    "lat": 10.7880034,
+    "lng": 106.6990605,
+    "type": "intersection"
+  },
+  {
+    "id": 35,
+    "name": "Ngã giao Mạc Đĩnh Chi - Nguyễn Đình Chiểu",
+    "lat": 10.7864747,
+    "lng": 106.6976387,
+    "type": "intersection"
+  },
+  {
+    "id": 36,
+    "name": "Ngã giao Nguyễn Đình Chiểu - Phùng Khắc Khoan",
+    "lat": 10.7856022,
+    "lng": 106.6968275,
+    "type": "intersection"
+  },
+  {
+    "id": 37,
+    "name": "Ngã giao Hai Bà Trưng - Nguyễn Đình Chiểu",
+    "lat": 10.7847069,
+    "lng": 106.695946,
+    "type": "intersection"
+  },
+  {
+    "id": 38,
+    "name": "Ngã giao Nguyễn Đình Chiểu - Phạm Ngọc Thạch",
+    "lat": 10.7835837,
+    "lng": 106.6948873,
+    "type": "intersection"
+  },
+  {
+    "id": 39,
+    "name": "Ngã giao Nguyễn Đình Chiểu - Pasteur",
+    "lat": 10.7824177,
+    "lng": 106.6937661,
+    "type": "intersection"
+  },
+  {
+    "id": 40,
+    "name": "Ngã giao Mạc Đĩnh Chi - Trần Cao Vân",
+    "lat": 10.7855356,
+    "lng": 106.698648,
+    "type": "intersection"
+  },
+  {
+    "id": 41,
+    "name": "Ngã giao Nguyễn Thị Minh Khai - Đinh Tiên Hoàng",
+    "lat": 10.786592,
+    "lng": 106.7015616,
+    "type": "intersection"
+  },
+  {
+    "id": 42,
+    "name": "Ngã giao Mạc Đĩnh Chi - Nguyễn Thị Minh Khai",
+    "lat": 10.7845956,
+    "lng": 106.6996555,
+    "type": "intersection"
+  },
+  {
+    "id": 43,
+    "name": "Ngã giao Nguyễn Thị Minh Khai - Phùng Khắc Khoan",
+    "lat": 10.7837385,
+    "lng": 106.698821,
+    "type": "intersection"
+  },
+  {
+    "id": 44,
+    "name": "Ngã giao Hai Bà Trưng - Trần Cao Vân",
+    "lat": 10.7838141,
+    "lng": 106.6970298,
+    "type": "intersection"
+  },
+  {
+    "id": 45,
+    "name": "Ngã giao Phùng Khắc Khoan - Trần Cao Vân",
+    "lat": 10.7846594,
+    "lng": 106.6978411,
+    "type": "intersection"
+  },
+  {
+    "id": 46,
+    "name": "Ngã giao Hai Bà Trưng - Nguyễn Thị Minh Khai",
+    "lat": 10.7829021,
+    "lng": 106.6980713,
+    "type": "intersection"
+  },
+  {
+    "id": 47,
+    "name": "Ngã giao Nguyễn Thị Minh Khai - Phạm Ngọc Thạch",
+    "lat": 10.7817021,
+    "lng": 106.6969469,
+    "type": "intersection"
+  },
+  {
+    "id": 48,
+    "name": "Ngã giao Nguyễn Thị Minh Khai - Pasteur",
+    "lat": 10.7805513,
+    "lng": 106.6958432,
+    "type": "intersection"
+  },
+  {
+    "id": 49,
+    "name": "Ngã giao Nam Kỳ Khởi Nghĩa - Nguyễn Thị Minh Khai",
+    "lat": 10.7795911,
+    "lng": 106.6949881,
+    "type": "intersection"
+  },
+  {
+    "id": 50,
+    "name": "Ngã giao Nam Kỳ Khởi Nghĩa - Võ Văn Tần",
+    "lat": 10.780493,
+    "lng": 106.6939512,
+    "type": "intersection"
+  },
+  {
+    "id": 51,
+    "name": "Ngã giao Pasteur - Võ Văn Tần",
+    "lat": 10.781489,
+    "lng": 106.6948229,
+    "type": "intersection"
+  },
+  {
+    "id": 52,
+    "name": "Ngã giao Công trường Quốc tế - Phạm Ngọc Thạch (điểm 52)",
+    "lat": 10.7829581,
+    "lng": 106.695588,
+    "type": "intersection"
+  },
+  {
+    "id": 53,
+    "name": "Ngã giao Công trường Quốc tế - Trần Cao Vân",
+    "lat": 10.7829291,
+    "lng": 106.6961808,
+    "type": "intersection"
+  },
+  {
+    "id": 54,
+    "name": "Ngã giao Công trường Quốc tế - Phạm Ngọc Thạch",
+    "lat": 10.7823626,
+    "lng": 106.6961969,
+    "type": "intersection"
+  },
+  {
+    "id": 55,
+    "name": "Điểm trên đường Phạm Ngọc Thạch",
+    "lat": 10.782138,
+    "lng": 106.6964902,
+    "type": "intersection"
+  },
+  {
+    "id": 56,
+    "name": "Ngã giao Công trường Quốc tế - Võ Văn Tần",
+    "lat": 10.7823409,
+    "lng": 106.6955863,
+    "type": "intersection"
+  },
+  {
+    "id": 9002,
+    "name": "Đầu hẻm Nhà hàng An Viên",
+    "lat": 10.785961594424059,
+    "lng": 106.69436736745632,
+    "type": "access",
+    "on_edge": {
+      "u": 19,
+      "v": 31,
+      "t": 0.5715,
+      "perp_m": 0.0
+    }
+  },
+  {
+    "id": 9003,
+    "name": "Đầu hẻm Nhà hàng Tuấn Tú",
+    "lat": 10.783252946323467,
+    "lng": 106.69649147291369,
+    "type": "access",
+    "on_edge": {
+      "u": 44,
+      "v": 53,
+      "t": 0.6341,
+      "perp_m": 0.0
+    }
+  },
+  {
+    "id": 9004,
+    "name": "Đầu hẻm Quán ăn Hà Nội Trư Bát Giới",
+    "lat": 10.787534037384889,
+    "lng": 106.69159175801208,
+    "type": "access",
+    "on_edge": {
+      "u": 3,
+      "v": 4,
+      "t": 0.4198,
+      "perp_m": 0.0
+    }
+  },
+  {
+    "id": 1001,
+    "name": "Cafe 28",
+    "address": "Cafe 28, 28 Trần Cao Vân, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.783322,
+    "lng": 106.696558,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 44,
+      "v": 53,
+      "t": 0.5555,
+      "perp_m": 21.1
+    }
+  },
+  {
+    "id": 1002,
+    "name": "Cafe 66",
+    "address": "Cafe 66, 66 Huỳnh Khương Ninh, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.789398,
+    "lng": 106.695602,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 9,
+      "v": 10,
+      "t": 0.7418,
+      "perp_m": 4.2
+    }
+  },
+  {
+    "id": 1003,
+    "name": "Cafe Bene",
+    "address": "Cafe Bene, 31 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.784985,
+    "lng": 106.699238,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 42,
+      "t": 0.5861,
+      "perp_m": 9.5
+    }
+  },
+  {
+    "id": 1004,
+    "name": "Cafe Vy",
+    "address": "Cafe Vy, 63 Đinh Tiên Hoàng, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.789374,
+    "lng": 106.698583,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 23,
+      "v": 33,
+      "t": 0.9303,
+      "perp_m": 6.9
+    }
+  },
+  {
+    "id": 1005,
+    "name": "Coffee Hut",
+    "address": "Coffee Hut, 5 Trương Quyền, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.786431,
+    "lng": 106.692806,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": null,
+    "access_to": 20
+  },
+  {
+    "id": 1006,
+    "name": "Cà phê Gốc",
+    "address": "Cà phê Gốc, 159 Đ. Điện Biên Phủ, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.787999,
+    "lng": 106.695179,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 17,
+      "v": 18,
+      "t": 0.8753,
+      "perp_m": 14.3
+    }
+  },
+  {
+    "id": 1007,
+    "name": "Cà phê Gốc Xanh",
+    "address": "Cà phê Gốc Xanh, 159 Đ. Điện Biên Phủ, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.788125,
+    "lng": 106.695306,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 16,
+      "v": 17,
+      "t": 0.1941,
+      "perp_m": 11.4
+    }
+  },
+  {
+    "id": 1008,
+    "name": "Cà Phê Hi-End",
+    "address": "Cà Phê Hi-End, Lầu 4, 217 Đ. Nguyễn Văn Thủ, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.786232,
+    "lng": 106.695479,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 30,
+      "v": 31,
+      "t": 0.3409,
+      "perp_m": 17.2
+    }
+  },
+  {
+    "id": 1009,
+    "name": "Cà Phê Nghệ Thuật",
+    "address": "Cà Phê Nghệ Thuật, Công Trường Quốc Tế, Vo Thi Sau Ward, Quận 3, Hồ Chí Minh",
+    "lat": 10.78294,
+    "lng": 106.695956,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 52,
+      "v": 53,
+      "t": 0.3787,
+      "perp_m": 33.4
+    }
+  },
+  {
+    "id": 1010,
+    "name": "Cà phê thành phố",
+    "address": "Cà phê thành phố, 5 5 Đường Công Trường Quốc Tế, Phường 6, Quận 3, Hồ Chí Minh",
+    "lat": 10.782749,
+    "lng": 106.695587,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 52,
+      "v": 56,
+      "t": 0.3395,
+      "perp_m": 17.4
+    }
+  },
+  {
+    "id": 1011,
+    "name": "Cà phê Thứ Bảy",
+    "address": "Cà phê Thứ Bảy, 19B Phạm Ngọc Thạch, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.783834,
+    "lng": 106.694617,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 21,
+      "v": 38,
+      "t": 0.8707,
+      "perp_m": 10.0
+    }
+  },
+  {
+    "id": 1012,
+    "name": "CÀ PHÊ VỢT - WIN1981",
+    "address": "CÀ PHÊ VỢT - WIN1981, 196 Pasteur, Phường 6, Quận 3, Thành phố Hồ Chí Minh",
+    "lat": 10.782464,
+    "lng": 106.69381,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 38,
+      "v": 39,
+      "t": 0.9606,
+      "perp_m": 4.2
+    }
+  },
+  {
+    "id": 1013,
+    "name": "Cà phê – nhà hàng Shri",
+    "address": "Cà phê – nhà hàng Shri, Nguyễn Thị Minh Khai, Vo Thi Sau Ward, Quận 3, Hồ Chí Minh",
+    "lat": 10.78248,
+    "lng": 106.697675,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 46,
+      "v": 47,
+      "t": 0.648,
+      "perp_m": 36.3
+    }
+  },
+  {
+    "id": 1014,
+    "name": "Juicell Cafe",
+    "address": "Juicell Cafe, 38 Phạm Ngọc Thạch, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.784791,
+    "lng": 106.69358,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 21,
+      "v": 38,
+      "t": 0.3758,
+      "perp_m": 9.2
+    }
+  },
+  {
+    "id": 1015,
+    "name": "Lá Phong - Sushi House",
+    "address": "Nhà hàng Lá Phong, 9 Trần Cao Vân, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.78484,
+    "lng": 106.698008,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 45,
+      "t": 0.7933,
+      "perp_m": 6.9
+    }
+  },
+  {
+    "id": 1016,
+    "name": "Mama Restaurant",
+    "address": "Nhà hàng Mama, 33 Nguyễn Đình Chiểu, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.786076,
+    "lng": 106.697268,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 35,
+      "v": 36,
+      "t": 0.4571,
+      "perp_m": 11.3
+    }
+  },
+  {
+    "id": 1017,
+    "name": "Nhà hàng Al Fresco's",
+    "address": "Nhà hàng Al Fresco's, 31 Bis Đường Mạc Đĩnh Chi, Đa Kao, Quận 1, Thành phố Hồ Chí Minh",
+    "lat": 10.784987,
+    "lng": 106.699236,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 42,
+      "t": 0.5833,
+      "perp_m": 12.9
+    }
+  },
+  {
+    "id": 1018,
+    "name": "Nhà hàng An Viên",
+    "address": "Nhà hàng An Viên, 178A Hai Bà Trưng, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.78627,
+    "lng": 106.694604,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": null,
+    "access_to": 9002
+  },
+  {
+    "id": 1019,
+    "name": "Nhà hàng Chick",
+    "address": "Nhà hàng Chick, 19 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.784773,
+    "lng": 106.699465,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 42,
+      "t": 0.811,
+      "perp_m": 9.5
+    }
+  },
+  {
+    "id": 1020,
+    "name": "Nhà hàng Cơm Xưa",
+    "address": "Nhà hàng Cơm Xưa, 20 Trần Cao Vân, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.784156,
+    "lng": 106.697358,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 44,
+      "v": 45,
+      "t": 0.5957,
+      "perp_m": 6.4
+    }
+  },
+  {
+    "id": 1021,
+    "name": "Nhà hàng Kitahama",
+    "address": "Nhà hàng Kitahama, 12 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.785166,
+    "lng": 106.699044,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 42,
+      "t": 0.3931,
+      "perp_m": 11.1
+    }
+  },
+  {
+    "id": 1022,
+    "name": "Nhà hàng Manmaru",
+    "address": "Nhà hàng Manmaru, 71 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.788177,
+    "lng": 106.695786,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 16,
+      "v": 29,
+      "t": 0.2065,
+      "perp_m": 10.1
+    }
+  },
+  {
+    "id": 1023,
+    "name": "Nhà Hàng Quê Nhà",
+    "address": "Nhà Hàng Quê Nhà, 28 Đường Phạm Ngọc Thạch, Phường Võ Thị Sáu, Quận 3, Thành Phố Hồ Chí Minh",
+    "lat": 10.784469,
+    "lng": 106.693929,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 21,
+      "v": 38,
+      "t": 0.5424,
+      "perp_m": 1.4
+    }
+  },
+  {
+    "id": 1024,
+    "name": "Nhà hàng Sari Indo",
+    "address": "Nhà hàng Sari Indo, 70 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.787541,
+    "lng": 106.696496,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 16,
+      "v": 29,
+      "t": 0.8776,
+      "perp_m": 6.4
+    }
+  },
+  {
+    "id": 1025,
+    "name": "Nhà Hàng Sukiya",
+    "address": "Nhà Hàng Sukiya, 224C Đường Pasteur, Phường Võ Thị Sáu, Quận 3, Thành Phố Hồ Chí Minh",
+    "lat": 10.784296,
+    "lng": 106.691739,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 22,
+      "v": 39,
+      "t": 0.9696,
+      "perp_m": 1.8
+    }
+  },
+  {
+    "id": 1026,
+    "name": "Nhà hàng Sông Trà",
+    "address": "Nhà hàng Sông Trà, 21A Trần Cao Vân, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.784133,
+    "lng": 106.697336,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 44,
+      "v": 45,
+      "t": 0.6226,
+      "perp_m": 7.0
+    }
+  },
+  {
+    "id": 1027,
+    "name": "Nhà hàng Tuấn Tú",
+    "address": "Nhà hàng Tuấn Tú, 38 Trần Cao Vân, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.783593,
+    "lng": 106.696137,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": null,
+    "access_to": 9003
+  },
+  {
+    "id": 1028,
+    "name": "Nhà hàng Vy Vy",
+    "address": "Nhà hàng Vy Vy, 174 Nguyễn Văn Thủ, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.787027,
+    "lng": 106.69624,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 29,
+      "v": 30,
+      "t": 0.4654,
+      "perp_m": 9.6
+    }
+  },
+  {
+    "id": 1029,
+    "name": "Nhà hàng Yumi",
+    "address": "Nhà hàng Yumi, 52 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.787253,
+    "lng": 106.696808,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 29,
+      "v": 35,
+      "t": 0.1802,
+      "perp_m": 6.6
+    }
+  },
+  {
+    "id": 1030,
+    "name": "Nhà hàng Đông Phương",
+    "address": "Nhà hàng Đông Phương, 11B Trần Cao Vân, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.784704,
+    "lng": 106.697882,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 40,
+      "v": 45,
+      "t": 0.9494,
+      "perp_m": 6.5
+    }
+  },
+  {
+    "id": 1031,
+    "name": "Nhà hàng Đại Môn",
+    "address": "Nhà hàng Đại Môn, 6B Phạm Ngọc Thạch, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.781978,
+    "lng": 106.696658,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 47,
+      "v": 55,
+      "t": 0.6333,
+      "perp_m": 11.7
+    }
+  },
+  {
+    "id": 1032,
+    "name": "Quán ăn 130",
+    "address": "Quán ăn 130, 130 Nguyễn Đình Chiểu, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.783793,
+    "lng": 106.695085,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 37,
+      "v": 38,
+      "t": 0.8135,
+      "perp_m": 7.7
+    }
+  },
+  {
+    "id": 1033,
+    "name": "Quán ăn 29",
+    "address": "Quán ăn 29, 29 Đinh Tiên Hoàng, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.788903,
+    "lng": 106.699096,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 23,
+      "v": 33,
+      "t": 0.4382,
+      "perp_m": 7.6
+    }
+  },
+  {
+    "id": 1034,
+    "name": "Quán ăn Gác Bếp",
+    "address": "Quán ăn Gác Bếp, 109 Đinh Tiên Hoàng, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.790573,
+    "lng": 106.697284,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 7,
+      "v": 12,
+      "t": 0.4256,
+      "perp_m": 8.0
+    }
+  },
+  {
+    "id": 1035,
+    "name": "Quán ăn Hà Nội Trư Bát Giới",
+    "address": "Quán ăn Hà Nội Trư Bát Giới, 72 Trương Quyền, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.787236,
+    "lng": 106.691896,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": null,
+    "access_to": 9004
+  },
+  {
+    "id": 1036,
+    "name": "Quán ăn Hàn Quốc",
+    "address": "Quán ăn Hàn Quốc, 11 Phạm Ngọc Thạch, Võ Thị Sáu, Quận 3, Hồ Chí Minh",
+    "lat": 10.783053,
+    "lng": 106.695481,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 38,
+      "v": 52,
+      "t": 0.8475,
+      "perp_m": 11.5
+    }
+  },
+  {
+    "id": 1037,
+    "name": "Quán ăn vặt Xuân Cô",
+    "address": "Quán ăn vặt Xuân Cô, 45 Võ Thị Sáu, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.790719,
+    "lng": 106.694734,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 1,
+      "v": 2,
+      "t": 0.7114,
+      "perp_m": 11.7
+    }
+  },
+  {
+    "id": 1038,
+    "name": "Quán Ăn Đồn Đất",
+    "address": "Quán Ăn Đồn Đất, 92 Mạc Đĩnh Chi, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.788134,
+    "lng": 106.695834,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 16,
+      "v": 29,
+      "t": 0.2518,
+      "perp_m": 8.3
+    }
+  },
+  {
+    "id": 1039,
+    "name": "Tgif Juice Smoothies",
+    "address": "Tgif Juice Smoothies, 19 Đinh Tiên Hoàng, Đa Kao, Quận 1, Hồ Chí Minh",
+    "lat": 10.78877,
+    "lng": 106.699241,
+    "type": "food",
+    "source": "goong_places",
+    "on_edge": {
+      "u": 23,
+      "v": 33,
+      "t": 0.2999,
+      "perp_m": 8.1
+    }
+  }
+];
