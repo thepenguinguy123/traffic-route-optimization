@@ -1,134 +1,195 @@
-import time
-from .utils import SearchResult, calculate_edge_cost, get_heuristic, CONGESTION_MULTIPLIERS
+"""Thuật toán Iterative Deepening A* trên đồ thị giao thông có hướng."""
 
-def ida_star(graph, start_id: str, goal_id: str, weights, limits) -> SearchResult:
-    """
-    Thuật toán Iterative Deepening A* (IDA*).
-    Sử dụng tìm kiếm theo chiều sâu (DFS) với một giới hạn chi phí (bound).
-    Giới hạn này ban đầu bằng giá trị heuristic từ điểm bắt đầu đến đích.
-    Nếu việc tìm kiếm vượt quá giới hạn chi phí này, giới hạn sẽ được tăng lên
-    bằng chi phí nhỏ nhất vượt ngưỡng ở bước trước đó.
-    
-    Args:
-        graph: Đối tượng đồ thị chứa các node và edge.
-        start_id: ID của điểm xuất phát.
-        goal_id: ID của điểm đích.
-        weights: Trọng số của các tiêu chí từ profile người dùng.
-        limits: Các giới hạn dùng để chuẩn hóa dữ liệu.
-        
-    Returns:
-        SearchResult: Đối tượng chứa toàn bộ thông tin về kết quả tìm kiếm.
-    """
-    start_time_proc = time.time()
-    
-    goal_node = graph.get_node(goal_id)
-    start_node = graph.get_node(start_id)
-    
-    # Giới hạn ban đầu (bound) được đặt bằng giá trị ước lượng h(n) từ điểm xuất phát
-    bound = get_heuristic(start_node, goal_node)
-    
-    visited_order = []
-    frontier_steps = []
-    
-    def search(current_id: str, g_cost: float, path: list, current_dist: float, current_time: float, current_bound: float):
-        """
-        Hàm đệ quy thực hiện tìm kiếm theo chiều sâu (DFS) với giới hạn bound.
-        Trả về trạng thái "FOUND" kèm kết quả nếu tìm thấy,
-        hoặc trả về chi phí f_cost nhỏ nhất vượt qua bound để làm bound cho lần lặp sau.
-        """
-        visited_order.append(current_id)
-        current_node = graph.get_node(current_id)
-        
-        # Tính hàm đánh giá f(n) = g(n) + h(n)
-        f_cost = g_cost + get_heuristic(current_node, goal_node)
-        
-        # Nếu tổng chi phí ước tính vượt quá giới hạn cho phép, cắt tỉa nhánh này
-        # và trả về f_cost để có thể dùng cập nhật bound cho lần lặp tiếp theo
-        if f_cost > current_bound:
-            return f_cost, None
-            
-        # Nếu đã đến đích, trả về trạng thái tìm thấy và các thông tin quãng đường
-        if current_id == goal_id:
-            return "FOUND", (path, current_dist, current_time, g_cost)
-            
-        min_cost = float("inf")
-        
-        # Duyệt qua các node kề (hàng xóm)
-        for edge in graph.get_edges(current_id):
-            # Bỏ qua nếu đường bị đóng hoặc node kề đã nằm trong đường đi hiện tại (tránh chu trình)
-            if edge.is_closed or edge.target in path:
+from heapq import heappop, heappush
+from itertools import count
+from time import perf_counter
+
+from .common import build_search_result
+from ..core.graph import TrafficGraph
+from ..core.models import CostProfile
+from ..core.search_models import FrontierItem, SearchResult, SearchTraceStep
+
+
+_EPSILON = 1e-9
+
+
+def search(
+    graph: TrafficGraph,
+    start: str,
+    goal: str,
+    profile: CostProfile,
+) -> SearchResult:
+    """Tìm đường chi phí thấp nhất bằng IDA* mà không fallback sang A*."""
+
+    started_at = perf_counter()
+    graph.get_node(start)
+    graph.get_node(goal)
+
+    neighbors, edge_costs = _build_traversable_costs(graph, profile)
+    heuristic = _calculate_remaining_costs(graph, goal, neighbors, edge_costs)
+    visited_order: list[str] = []
+    frontier_steps: list[SearchTraceStep] = []
+    found_path: list[str] = []
+
+    if start not in heuristic:
+        return build_search_result(
+            algorithm="ida_star",
+            graph=graph,
+            profile=profile,
+            path=found_path,
+            visited_order=visited_order,
+            frontier_steps=frontier_steps,
+            started_at=started_at,
+        )
+
+    bound = heuristic[start]
+
+    def visit(
+        current: str,
+        cost: float,
+        path: list[str],
+        path_nodes: set[str],
+        best_cost_in_iteration: dict[str, float],
+    ) -> float | None:
+        """Duyệt sâu một lần IDA* và trả về ngưỡng kế tiếp hoặc ``None``."""
+
+        nonlocal found_path
+
+        remaining_cost = heuristic.get(current)
+        if remaining_cost is None:
+            return float("inf")
+
+        score = cost + remaining_cost
+        if score > bound + _EPSILON:
+            return score
+
+        previous_cost = best_cost_in_iteration.get(current)
+        if previous_cost is not None and cost >= previous_cost - _EPSILON:
+            return float("inf")
+        best_cost_in_iteration[current] = cost
+
+        visited_order.append(current)
+        frontier_steps.append(
+            SearchTraceStep(
+                step=len(frontier_steps) + 1,
+                current=FrontierItem(
+                    node_id=current,
+                    parent_id=path[-2] if len(path) > 1 else None,
+                    depth=len(path) - 1,
+                    g_cost=cost,
+                    h_cost=remaining_cost,
+                    f_cost=score,
+                ),
+                visited=list(visited_order),
+                frontier=[],
+                path_so_far=list(path),
+            )
+        )
+
+        if current == goal:
+            found_path = list(path)
+            return None
+
+        next_bound = float("inf")
+        for neighbor in neighbors[current]:
+            if neighbor in path_nodes:
                 continue
-                
-            # Tính chi phí g(n) cho đoạn đường mới
-            edge_cost = calculate_edge_cost(edge, weights, limits)
-            
-            # Tính toán thời gian thực tế dựa trên mức độ ùn tắc
-            multiplier = CONGESTION_MULTIPLIERS.get(edge.congestion_level, 1.0)
-            actual_time = edge.base_time_min * multiplier
-            
-            # Gọi đệ quy để đi sâu xuống node kề
-            t, result = search(
-                edge.target, 
-                g_cost + edge_cost, 
-                path + [edge.target],
-                current_dist + edge.distance_km,
-                current_time + actual_time,
-                current_bound
-            )
-            
-            # Nếu nhánh này tìm thấy đích, truyền kết quả lên trên
-            if t == "FOUND":
-                return "FOUND", result
-                
-            # Cập nhật chi phí nhỏ nhất bị vượt ngưỡng
-            if t < min_cost:
-                min_cost = t
-                
-        return min_cost, None
 
-    # Vòng lặp tăng dần giới hạn (Iterative Deepening)
+            candidate_cost = cost + edge_costs[(current, neighbor)]
+            result = visit(
+                neighbor,
+                candidate_cost,
+                path + [neighbor],
+                path_nodes | {neighbor},
+                best_cost_in_iteration,
+            )
+            if result is None:
+                return None
+            next_bound = min(next_bound, result)
+
+        return next_bound
+
     while True:
-        # Mỗi lần lặp sẽ chạy lại DFS từ đầu nhưng với một giới hạn (bound) lớn hơn
-        t, result = search(start_id, 0.0, [start_id], 0.0, 0.0, bound)
-        
-        # Nếu tìm thấy đích, đóng gói và trả về kết quả
-        if t == "FOUND":
-            path, dist, time_val, cost = result
-            proc_time = (time.time() - start_time_proc) * 1000
-            
-            # Ghi nhận trạng thái frontier giả lập (do bản chất DFS đệ quy không có frontier rõ như BFS/Dijkstra)
-            frontier_steps.append([start_id]) 
-            
-            return SearchResult(
-                algorithm="IDA*", 
-                found=True, 
-                path=path,
-                visited_order=visited_order, 
-                frontier_steps=frontier_steps,
-                total_distance=dist, 
-                total_time=time_val, 
-                total_cost=cost,
-                explored_nodes=len(set(visited_order)), 
-                processing_time_ms=proc_time,
-                message="Route found successfully."
+        result = visit(start, 0.0, [start], {start}, {})
+        if result is None or result == float("inf"):
+            break
+        bound = result
+
+    return build_search_result(
+        algorithm="ida_star",
+        graph=graph,
+        profile=profile,
+        path=found_path,
+        visited_order=visited_order,
+        frontier_steps=frontier_steps,
+        started_at=started_at,
+    )
+
+
+def _build_traversable_costs(
+    graph: TrafficGraph,
+    profile: CostProfile,
+) -> tuple[dict[str, list[str]], dict[tuple[str, str], float]]:
+    """Lưu sẵn các cạnh hợp lệ và chi phí để không tính lặp trong IDA*."""
+
+    neighbors: dict[str, list[str]] = {}
+    edge_costs: dict[tuple[str, str], float] = {}
+    for node in graph.get_all_nodes():
+        node_neighbors = graph.get_traversable_neighbors(node.id)
+        neighbors[node.id] = node_neighbors
+        for neighbor in node_neighbors:
+            edge_costs[(node.id, neighbor)] = graph.get_edge_cost(
+                node.id,
+                neighbor,
+                profile,
             )
-            
-        # Nếu trả về vô cực, nghĩa là đã duyệt hết đồ thị mà không còn đường nào đi được nữa
-        if t == float("inf"):
-            proc_time = (time.time() - start_time_proc) * 1000
-            return SearchResult(
-                algorithm="IDA*", 
-                found=False, 
-                path=[], 
-                visited_order=visited_order, 
-                frontier_steps=frontier_steps, 
-                total_distance=0.0, 
-                total_time=0.0, 
-                total_cost=0.0, 
-                explored_nodes=len(set(visited_order)), 
-                processing_time_ms=proc_time, 
-                message="No route found."
+    return neighbors, edge_costs
+
+
+def _calculate_remaining_costs(
+    graph: TrafficGraph,
+    goal: str,
+    neighbors: dict[str, list[str]],
+    edge_costs: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    """Tính lower bound chính xác từ mỗi nút tới đích trên đồ thị có hướng.
+
+    Dijkstra chạy trên các cạnh đảo tạo heuristic admissible và nhất quán cho
+    IDA*. Nhờ đó, đồ thị cỡ khoảng 100 nút không còn phải lặp lại các lần mở
+    rộng theo heuristic Haversine quá yếu.
+    """
+
+    reverse_edges: dict[str, list[tuple[str, float]]] = {
+        node.id: [] for node in graph.get_all_nodes()
+    }
+    for source, node_neighbors in neighbors.items():
+        for target in node_neighbors:
+            reverse_edges[target].append(
+                (source, edge_costs[(source, target)])
             )
-            
-        # Cập nhật giới hạn mới bằng với chi phí nhỏ nhất đã bị cắt tỉa trong lần lặp vừa rồi
-        bound = t
+
+    insertion_order = count()
+    remaining_costs = {goal: 0.0}
+    frontier = [(0.0, next(insertion_order), goal)]
+    while frontier:
+        cost, _, current = heappop(frontier)
+        if cost > remaining_costs[current] + _EPSILON:
+            continue
+
+        for predecessor, edge_cost in reverse_edges[current]:
+            candidate_cost = cost + edge_cost
+            if candidate_cost >= remaining_costs.get(
+                predecessor,
+                float("inf"),
+            ) - _EPSILON:
+                continue
+            remaining_costs[predecessor] = candidate_cost
+            heappush(
+                frontier,
+                (candidate_cost, next(insertion_order), predecessor),
+            )
+
+    return remaining_costs
+
+
+__all__ = ["search"]

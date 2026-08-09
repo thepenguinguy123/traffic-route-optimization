@@ -1,74 +1,72 @@
-from typing import List, Dict, Any
-from app.algorithms.utils import SearchResult, Weights, Limits
+"""Đo và so sánh các thuật toán trên cùng một graph core/profile."""
+
+from collections.abc import Iterable
+from typing import Any
+
+from ..algorithms.registry import ALGORITHM_REGISTRY
+from ..core.cost_profiles import COST_PROFILES
+from ..core.graph import TrafficGraph
+from ..core.search_models import SearchResult
+
+
+DEFAULT_COMPARISON_ALGORITHMS = (
+    "bfs",
+    "dfs",
+    "ucs",
+    "astar",
+    "ida_star",
+    "greedy_best_first",
+)
+
 
 class MetricsService:
-    """
-    Service đảm nhận việc chạy thử nghiệm, đo lường và trích xuất các metrics 
-    hiệu năng của các thuật toán tìm kiếm để phục vụ cho API, GUI và Báo cáo.
-    """
+    """Chạy nhiều thuật toán cùng input và tạo summary ổn định cho API."""
 
     @staticmethod
     def compare_algorithms(
-        graph, 
-        start_id: str, 
-        goal_id: str, 
-        weights: Weights, 
-        limits: Limits, 
-        algorithms: List[Dict[str, Any]]
-    ) -> List[SearchResult]:
-        """
-        Nhận vào danh sách các thuật toán, thực thi từng thuật toán trên đồ thị 
-        và thu thập danh sách kết quả SearchResult.
-        """
+        graph: TrafficGraph,
+        start: str,
+        goal: str,
+        profile_name: str = "balanced",
+        algorithm_names: Iterable[str] = DEFAULT_COMPARISON_ALGORITHMS,
+    ) -> list[SearchResult]:
+        """Trả kết quả từng thuật toán theo đúng thứ tự yêu cầu."""
+
+        if profile_name not in COST_PROFILES:
+            raise ValueError(f"Cost profile không tồn tại: {profile_name}")
+        profile = COST_PROFILES[profile_name]
         results = []
-        
-        for algo in algorithms:
-            algo_func = algo["func"]
-            requires_weights = algo.get("requires_weights", False)
-            
-            if requires_weights:
-                result = algo_func(graph, start_id, goal_id, weights, limits)
-            else:
-                result = algo_func(graph, start_id, goal_id)
-                
-            results.append(result)
-            
+        for algorithm_name in algorithm_names:
+            if algorithm_name not in ALGORITHM_REGISTRY:
+                raise ValueError(f"Thuật toán không tồn tại: {algorithm_name}")
+            results.append(
+                ALGORITHM_REGISTRY[algorithm_name](graph, start, goal, profile)
+            )
         return results
 
     @staticmethod
-    def format_summary_metrics(results: List[SearchResult]) -> List[Dict[str, Any]]:
-        """
-        Chuyển đổi danh sách SearchResult thành dạng Dictionary đơn giản, 
-        giúp dễ dàng trả về JSON Response cho API hoặc lưu ra báo cáo.
-        """
-        summary = []
-        for res in results:
-            summary.append({
-                "algorithm": res.algorithm,
-                "found": res.found,
-                "explored_nodes": res.explored_nodes,
-                "processing_time_ms": round(res.processing_time_ms, 4),
-                "total_distance_km": round(res.total_distance, 2) if res.found else None,
-                "total_time_min": round(res.total_time, 2) if res.found else None,
-                "total_cost": round(res.total_cost, 4) if res.found else None,
-                "path_length": len(res.path) if res.found else 0
-            })
-        return summary
+    def format_summary_metrics(results: Iterable[SearchResult]) -> list[dict[str, Any]]:
+        """Chuyển SearchResult thành dữ liệu gọn cho bảng metrics."""
 
-    @staticmethod
-    def print_metrics_table(results: List[SearchResult]):
-        """In ra bảng so sánh metrics đẹp mắt ngay tại console để debug/kiểm tra"""
-        print("-" * 110)
-        print(f"{'Thuật toán':<25} | {'Trạng thái':<10} | {'Node mở rộng':<15} | {'Thời gian (ms)':<15} | {'Quãng đường (km)':<15} | {'Cost':<10}")
-        print("-" * 110)
-        
-        for res in results:
-            status = "Thành công" if res.found else "Thất bại"
-            nodes = res.explored_nodes
-            time_ms = f"{res.processing_time_ms:.4f}"
-            dist = f"{res.total_distance:.2f}" if res.found else "N/A"
-            cost = f"{res.total_cost:.4f}" if res.found else "N/A"
-            
-            print(f"{res.algorithm:<25} | {status:<10} | {nodes:<15} | {time_ms:<15} | {dist:<15} | {cost:<10}")
-        
-        print("-" * 110)
+        return [
+            {
+                "algorithm": result.algorithm,
+                "found": result.found,
+                "explored_nodes": result.explored_nodes,
+                "processing_time_ms": round(result.processing_time_ms, 4),
+                "total_distance_km": round(result.total_distance, 3)
+                if result.found
+                else None,
+                "total_time_min": round(result.total_time, 3)
+                if result.found
+                else None,
+                "total_cost": round(result.total_cost, 4)
+                if result.found
+                else None,
+                "path_length": len(result.path) if result.found else 0,
+            }
+            for result in results
+        ]
+
+
+__all__ = ["DEFAULT_COMPARISON_ALGORITHMS", "MetricsService"]
