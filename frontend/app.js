@@ -956,6 +956,39 @@ function drawRouteReviewStep(step) {
     layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-color": "#22d3ee", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 7, 18, 11], "line-opacity": 0.92 } });
 }
+function renderRouteStepDetail(container, step) {
+  if (!container) return;
+  if (!step) {
+    container.textContent = "No route available.";
+    return;
+  }
+
+  const distance = formatRouteMetric(step.distance, " km");
+  const time = formatRouteMetric(step.time, " min");
+  const congestion = Number(step.congestion || 0).toFixed(1);
+  const risk = Number(step.risk || 0).toFixed(1);
+  container.innerHTML =
+    '<div class="route-step-detail__route">' +
+      '<div class="route-step-detail__node route-step-detail__node--from">' +
+        '<span class="route-step-detail__eyebrow">FROM</span>' +
+        '<strong>' + escapeHtml(step.fromName) + '</strong>' +
+      '</div>' +
+      '<span class="route-step-detail__arrow" aria-hidden="true">&rarr;</span>' +
+      '<div class="route-step-detail__node route-step-detail__node--to">' +
+        '<span class="route-step-detail__eyebrow">TO</span>' +
+        '<strong>' + escapeHtml(step.toName) + '</strong>' +
+      '</div>' +
+    '</div>' +
+    '<div class="route-step-detail__metrics" aria-label="Step metrics">' +
+      '<div class="route-step-detail__metric"><span>Distance</span><strong>' + distance + '</strong></div>' +
+      '<div class="route-step-detail__metric"><span>Travel time</span><strong>' + time + '</strong></div>' +
+      '<div class="route-step-detail__metric"><span>Congestion</span><strong>' + congestion + '</strong></div>' +
+      '<div class="route-step-detail__metric"><span>Risk</span><strong>' + risk + '</strong></div>' +
+    '</div>' +
+    '<div class="route-step-detail__direction">' +
+      '<span>Segment direction</span><strong>' + escapeHtml(step.direction) + '</strong>' +
+    '</div>';
+}
 function selectRouteReviewStep(index) {
   const steps = state.routeReview.steps;
   state.routeReview.activeIndex = steps.length ? Math.max(0, Math.min(index, steps.length - 1)) : -1;
@@ -964,7 +997,7 @@ function selectRouteReviewStep(index) {
   const previous = document.getElementById("route-step-prev"), next = document.getElementById("route-step-next");
   if (previous) previous.disabled = !steps.length || state.routeReview.activeIndex <= 0;
   if (next) next.disabled = !steps.length || state.routeReview.activeIndex >= steps.length - 1;
-  if (detail) detail.textContent = active ? active.fromName + " -> " + active.toName + " / " + formatRouteMetric(active.distance, " km") + " / " + formatRouteMetric(active.time, " min") + " / congestion " + active.congestion.toFixed(1) + " / risk " + active.risk.toFixed(1) : "No route available.";
+  renderRouteStepDetail(detail, active);
   list?.querySelectorAll(".route-step-list__item").forEach((item, itemIndex) => { item.classList.toggle("is-active", itemIndex === state.routeReview.activeIndex); item.setAttribute("aria-current", itemIndex === state.routeReview.activeIndex ? "step" : "false"); });
   drawRouteReviewStep(active);
 }

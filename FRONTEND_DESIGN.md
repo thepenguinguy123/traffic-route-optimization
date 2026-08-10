@@ -29,3 +29,6 @@ Frontend không yêu cầu React hoặc Tailwind; HTML/CSS/JavaScript thuần ph
 - Search thành công mở Right Panel và đóng Bottom Panel.
 - Compare thành công mở Bottom Panel và thu gọn Right Panel; mở lại Right Panel sẽ thu gọn Bottom Panel.
 - HTML ID là duy nhất và mọi ID tĩnh được JavaScript truy cập phải tồn tại trong markup.
+## Chi tiết từng bước
+
+Mỗi bước tuyến được trình bày theo ba lớp: cặp điểm `FROM`/`TO`, lưới bốn thông số khoảng cách/thời gian/ùn tắc/rủi ro, và dòng mô tả hướng cạnh. Cấu trúc này giữ tên địa điểm dài trong vùng giới hạn, giúp người dùng quét nhanh thông tin mà không phải đọc chuỗi dấu gạch chéo.
