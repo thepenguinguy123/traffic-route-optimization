@@ -1,5 +1,5 @@
-﻿<!DOCTYPE html>
-<html lang="vi">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,63 +9,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" />
     
-    <!-- Inline CSS for local debugging -->
-    <style>
-    :root{--color-bg-primary:#ffffff;--color-bg-panel:#f5f5f5;--color-bg-glass:#e0e0e0;--color-border:#000000;--color-text-primary:#333333;--color-text-secondary:#666666;--color-accent:#000000;--spacing-xs:4px;--spacing-sm:8px;--spacing-md:12px;--spacing-lg:16px;--spacing-xl:20px;--transition-fast:all 0.2s ease;--transition-normal:all 0.3s ease}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background-color:var(--color-bg-primary);color:var(--color-text-primary);overflow:hidden}
-    .app-container{display:flex;height:100vh;width:100vw}
-    .control-panel{flex:0 0 350px;height:100%;background:var(--color-bg-panel);border-right:var(--color-border);display:flex;flex-direction:column;z-index:10}
-    .control-panel__header{padding:var(--spacing-xl);border-bottom:var(--color-border)}
-    .control-panel__header h1{font-size:1.25rem;font-weight:600;margin-bottom:var(--spacing-xs)}
-    .control-panel__header .subtitle{font-size:0.85rem;color:var(--color-text-secondary)}
-    .control-panel__content{flex:1;overflow-y:auto;padding:var(--spacing-xl);display:flex;flex-direction:column;gap:var(--spacing-lg)}
-    .control-group{display:flex;flex-direction:column;gap:var(--spacing-xs)}
-    .control-group label{font-size:0.85rem;font-weight:500;color:var(--color-text-secondary)}
-    .select{width:100%;background:var(--color-bg-glass);color:var(--color-text-primary);border:var(--color-border);padding:var(--spacing-sm) var(--spacing-md);font-family:inherit;appearance:none;outline:none}
-    .btn-primary{width:100%;background:var(--color-accent);color:white;font-size:1rem;border:var(--color-border)}
-    .btn-secondary{border:var(--color-border);background:var(--color-bg-glass);color:var(--color-text-primary)}
-    button{cursor:pointer;border-radius:0}
-    .glass-panel{background:var(--color-bg-glass);border:var(--color-border);padding:var(--spacing-lg);margin-top:var(--spacing-md)}
-    #map{width:100%;height:100%;background:var(--color-bg-glass)}
-    .map-container{flex:1;height:100vh}
-    .legend-color{width:14px;height:14px;border:var(--color-border);display:inline-block}
-    </style>
-    
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260810-compare-two-column-v11">
 </head>
 <body>
-    <!-- Nội dung HTML giống như trước -->
     <div class="app-container">
-        <aside class="control-panel">
+        <aside class="control-panel" id="control-panel">
             <header class="control-panel__header">
                 <h1>Traffic Route Optimizer</h1>
-                <p class="subtitle">Quận 1, TP.HCM</p>
+                <p class="subtitle">District 1, Ho Chi Minh City</p>
             </header>
             <div class="control-panel__content">
                 <div class="control-group algorithm-control">
                     <div class="control-label-row">
-                        <label for="algorithm-select">Thuật toán</label>
+                        <label for="algorithm-select">Algorithm</label>
                         <span class="control-kicker">GRAPH CORE</span>
                     </div>
                     <div class="select-wrapper">
                         <select id="algorithm-select" class="select">
-                            <option value="">Đang tải thuật toán...</option>
+                            <option value="">Loading algorithms...</option>
                         </select>
                     </div>
-                    <p id="algorithm-description" class="control-hint">Chọn cách mở rộng graph.</p>
+                    <p id="algorithm-description" class="control-hint">Choose a graph exploration strategy.</p>
                 </div>
-                <div class="control-group" id="start-group">
-                    <label for="start-select">Start Food Place</label>
+                <div class="control-group endpoint-control endpoint-control--start" id="start-group">
+                    <div class="endpoint-control__heading">
+                        <span class="endpoint-control__marker">S</span>
+                        <label for="start-select">Start point</label>
+                        <span class="endpoint-control__kicker">START</span>
+                    </div>
                     <select id="start-select" class="select">
-                        <option value="">Loading nodes...</option>
+                        <option value="">No node selected</option>
                     </select>
+                    <p id="start-selection-summary" class="endpoint-control__summary">Choose a place to start.</p>
                 </div>
-                <div class="control-group" id="end-group">
-                    <label for="end-select">End Food Place</label>
+                <div class="control-group endpoint-control endpoint-control--end" id="end-group">
+                    <div class="endpoint-control__heading">
+                        <span class="endpoint-control__marker">E</span>
+                        <label for="end-select">End point</label>
+                        <span class="endpoint-control__kicker">DESTINATION</span>
+                    </div>
                     <select id="end-select" class="select">
-                        <option value="">Loading nodes...</option>
+                        <option value="">No node selected</option>
                     </select>
+                    <p id="end-selection-summary" class="endpoint-control__summary">Choose a destination.</p>
                 </div>
                 <div class="control-group" id="tsp-section" style="display: none;">
                     <div class="tsp-header">
@@ -76,18 +62,43 @@
                         </div>
                     </div>
                     <div id="tsp-waypoints-list" class="waypoints-list"></div>
+
+                    <div class="tsp-mode-panel">
+                        <span class="control-kicker">ROUTE MODE</span>
+                        <div class="tsp-mode-options" role="radiogroup" aria-label="TSP route mode">
+                            <label class="tsp-mode-option">
+                                <input type="radio" name="tsp-mode" value="auto" checked>
+                                <span><strong>Automatic</strong><small>Optimize waypoint order.</small></span>
+                            </label>
+                            <label class="tsp-mode-option">
+                                <input type="radio" name="tsp-mode" value="ordered">
+                                <span><strong>Ordered</strong><small>Preserve the draggable queue order.</small></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="tsp-queue-panel">
+                        <div class="tsp-queue-panel__header">
+                            <div>
+                                <span class="control-kicker">ROUTE QUEUE</span>
+                                <p class="control-hint">Drag and drop to reorder stops.</p>
+                            </div>
+                            <span id="tsp-queue-count" class="tsp-queue-count">0</span>
+                        </div>
+                        <ol id="tsp-queue" class="tsp-queue" aria-label="TSP waypoint order"></ol>
+                        <p id="tsp-queue-empty" class="tsp-queue__empty">No stops selected.</p>
+                    </div>
                 </div>
                 <div class="control-group" id="cost-type">
                     <div class="control-label-row">
-                        <label for="cost-profile-select">Tiêu chí tối ưu</label>
+                        <label for="cost-profile-select">Optimization criteria</label>
                         <span class="control-kicker">COST PROFILE</span>
                     </div>
                     <div class="select-wrapper">
                         <select id="cost-profile-select" class="select">
-                            <option value="balanced">Cân bằng</option>
+                            <option value="balanced">Balanced</option>
                         </select>
                     </div>
-                    <p id="cost-description" class="control-hint">Cân đối khoảng cách, thời gian và rủi ro.</p>
+                    <p id="cost-description" class="control-hint">Balance distance, travel time, and risk.</p>
                 </div>
                 <div class="control-group">
                     <label for="speed-slider">Animation Speed</label>
@@ -106,87 +117,162 @@
                         <button id="btn-reset" class="btn-secondary">Reset</button>
                     </div>
                 </div>
-                <div id="metrics-panel" style="display: none;" class="glass-panel metrics-panel">
-                    <div class="panel-heading-row">
-                        <h3>Algorithm Metrics</h3>
-                        <span id="metrics-profile" class="control-kicker"></span>
-                    </div>
-                    <div class="metrics-table-wrap">
-                        <table class="metrics-table">
-                            <thead>
-                                <tr>
-                                    <th>Algorithm</th>
-                                    <th>Found</th>
-                                    <th>Explored</th>
-                                    <th>Time</th>
-                                    <th>Cost</th>
-                                </tr>
-                            </thead>
-                            <tbody id="metrics-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div id="results-panel" style="display: none;" class="glass-panel">
-                    <h3>Results Summary</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-value" id="stat-explored">0</span>
-                            <span class="stat-label">Nodes Explored</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-value" id="stat-distance">0 km</span>
-                            <span class="stat-label">Total Distance</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-value" id="stat-time">0 min</span>
-                            <span class="stat-label">Total Time</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-value" id="stat-cost">0</span>
-                            <span class="stat-label">Total Cost</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-value" id="stat-proc-time">0 ms</span>
-                            <span class="stat-label">Processing Time</span>
-                        </div>
-                    </div>
-                    <div class="route-display">
-                        <span class="stat-label">Optimal Route:</span>
-                        <div id="route-text" class="route-text-box"></div>
-                    </div>
-                    <div class="explanation-box">
-                        <span class="stat-label">Analysis:</span>
-                        <div id="explanation-text"></div>
-                    </div>
-                </div>
                 <div id="legend" class="glass-panel">
                     <h4>Legend</h4>
                     <ul class="legend-list">
-                        <li><span class="legend-color" style="background: white; border: 1px solid #000;"></span>Unexplored Node</li>
-                        <li><span class="legend-color" style="background: #fb923c; border: 1px solid #000;"></span>Restaurant</li>
-                        <li><span class="legend-color" style="background: #ef4444; border: 1px solid #000;"></span>Frontier Node</li>
-                        <li><span class="legend-color" style="background: #22c55e; border: 1px solid #000;"></span>Visited Node</li>
-                        <li><span class="legend-color" style="background: #f59e0b; border: 1px solid #000;"></span>Optimal Path</li>
+                        <li><span class="legend-color legend-color--unexplored"></span>Unexplored</li>
+                        <li><span class="legend-color legend-color--food"></span>Food place</li>
+                        <li><span class="legend-color legend-color--frontier"></span>Frontier</li>
+                        <li><span class="legend-color legend-color--visited"></span>Visited</li>
+                        <li><span class="legend-color legend-color--current"></span>Processing</li>
+                        <li><span class="legend-color legend-color--optimal"></span>Result route</li>
+                        <li><span class="legend-color legend-color--start"></span>Start point</li>
+                        <li><span class="legend-color legend-color--end"></span>End point</li>
                     </ul>
                     <div class="edge-legend">
-                        <span class="stat-label">Road Congestion:</span>
-                        <div class="gradient-bar"></div>
-                        <div class="slider-labels">
-                            <span>Smooth</span>
-                            <span>Heavy Traffic</span>
+                        <div class="edge-legend__header">
+                            <span class="stat-label">Edge color</span>
+                            <div class="edge-metric-toggle" role="group" aria-label="Select the edge color metric">
+                                <button type="button" class="edge-metric-toggle__button is-active" data-edge-metric="congestion">Congestion</button>
+                                <button type="button" class="edge-metric-toggle__button" data-edge-metric="risk">Risk</button>
+                            </div>
                         </div>
+                        <div id="edge-scale" class="edge-scale" aria-hidden="true"></div>
+                        <div class="slider-labels">
+                            <span id="edge-low-label">Free-flowing</span>
+                            <span id="edge-high-label">Congested</span>
+                        </div>
+                        <p id="edge-direction-help" class="edge-direction-help">Arrows indicate travel direction. Two-way roads use opposing arrows.</p>
                     </div>
                 </div>
             </div>
+            <button id="panel-resizer" class="panel-resizer" type="button" aria-label="Resize the control panel" title="Drag to resize the control panel"></button>
         </aside>
         <main class="map-container">
             <div id="map"></div>
             <div id="loading-overlay" style="display: none;">
                 <p>Loading map...</p>
             </div>
+            <aside id="results-drawer" class="results-drawer" aria-hidden="true" hidden>
+                <div class="results-drawer__header">
+                    <div>
+                        <span id="results-drawer-kicker" class="control-kicker">ROUTE REVIEW</span>
+                        <h2 id="results-drawer-title">Search Results</h2>
+                    </div>
+                    <button id="results-drawer-close" class="results-drawer__close" type="button" aria-label="Close results panel">&times;</button>
+                    <button id="results-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse results panel" aria-expanded="true">&rsaquo;</button>
+                </div>
+                <button id="results-drawer-resizer" class="results-drawer__resizer" type="button" aria-label="Resize the results panel" title="Drag to resize the results panel"></button>
+                <div class="results-drawer__content">
+                    <section id="metrics-panel" class="compare-panel" aria-labelledby="compare-title" hidden>
+                        <div class="compare-panel__overview">
+                            <div class="compare-panel__heading">
+                                <div>
+                                    <span class="control-kicker">BENCHMARK</span>
+                                    <h3 id="compare-title">Algorithm Comparison</h3>
+                                </div>
+                                <span id="metrics-profile" class="compare-panel__profile"></span>
+                            </div>
+                            <p id="compare-context" class="compare-context">Choose start and end points to create a benchmark.</p>
+                            <div class="compare-verdict" aria-live="polite">
+                                <span class="compare-verdict__label">QUICK VERDICT</span>
+                                <strong id="compare-winner">&mdash;</strong>
+                                <span id="compare-winner-detail">Run a comparison to identify the strongest algorithm.</span>
+                            </div>
+                                                        <div id="compare-metric-summary" class="compare-metric-summary" role="list" aria-label="Algorithm rankings by metric">
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button is-active" data-compare-metric="total_cost" aria-pressed="true">Cost</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_cost">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="processing_time_ms" aria-pressed="false">Runtime</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="processing_time_ms">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="explored_nodes" aria-pressed="false">Explored</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="explored_nodes">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="total_distance_km" aria-pressed="false">Distance</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_distance_km">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="total_time_min" aria-pressed="false">Travel Time</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_time_min">&mdash;</span>
+                                </div>
+                            </div>
+                        </div>
+                        <aside class="compare-panel__details" aria-labelledby="compare-details-title">
+                            <div class="compare-panel__details-heading">
+                                <span class="control-kicker">DETAIL MATRIX</span>
+                                <h3 id="compare-details-title">Metrics Table</h3>
+                            </div>
+                            <div class="metrics-table-wrap">
+                                <table class="metrics-table compare-table">
+                                    <caption>Detailed metrics for each algorithm</caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Algorithm</th>
+                                            <th>Status</th>
+                                            <th>Nodes</th>
+                                            <th>Runtime</th>
+                                            <th>Cost</th>
+                                            <th>Distance</th>
+                                            <th>Travel</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="metrics-table-body"></tbody>
+                                </table>
+                            </div>
+                        </aside>
+                    </section>
+                    <div id="results-panel" style="display: none;" class="glass-panel">
+                        <h3>Results Summary</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card"><span class="stat-value" id="stat-explored">0</span><span class="stat-label">Nodes Explored</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-distance">0 km</span><span class="stat-label">Total Distance</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-time">0 min</span><span class="stat-label">Total Time</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-cost">0</span><span class="stat-label">Total Cost</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-proc-time">0 ms</span><span class="stat-label">Processing Time</span></div>
+                        </div>
+
+                        <div class="explanation-box">
+                            <span class="stat-label">Analysis:</span>
+                            <div id="explanation-text"></div>
+                        </div>
+                    </div>
+                    <section id="route-review-panel" class="route-review" aria-labelledby="route-review-title">
+                        <div class="route-review__heading">
+                            <div>
+                                <span class="control-kicker">STEP-BY-STEP</span>
+                                <h3 id="route-review-title">Route Steps</h3>
+                            </div>
+                            <span id="route-step-counter" class="route-review__counter">0 / 0</span>
+                        </div>
+                        <div class="route-review__toolbar" role="group" aria-label="Navigate route steps">
+                            <button id="route-step-prev" class="btn-secondary btn-small" type="button" aria-label="Previous step" disabled>&larr;</button>
+                            <button id="route-step-next" class="btn-secondary btn-small" type="button" aria-label="Next step" disabled>&rarr;</button>
+                        </div>
+                        <div id="route-step-detail" class="route-step-detail" aria-live="polite">No route available.</div>
+                        <ol id="route-step-list" class="route-step-list" aria-label="Route step list"></ol>
+                    </section>
+                </div>
+            </aside>
+            <aside id="compare-drawer" class="results-drawer is-compare-mode" aria-hidden="true" hidden>
+                <div class="results-drawer__header">
+                    <div>
+                        <span id="compare-drawer-kicker" class="control-kicker">ALGORITHM BENCHMARK</span>
+                        <h2 id="compare-drawer-title">Algorithm Comparison</h2>
+                    </div>
+                    <button id="compare-drawer-close" class="results-drawer__close" type="button" aria-label="Close comparison panel">&times;</button>
+                </div>
+                <button id="compare-drawer-resizer" class="results-drawer__resizer" type="button" aria-label="Resize the comparison panel" title="Drag to resize the comparison panel"></button>
+                <button id="compare-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse comparison panel" aria-expanded="true">&darr;</button>
+                <div id="compare-drawer-content" class="results-drawer__content"></div>
+            </aside>
         </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260810-compare-two-column-v11"></script>
 </body>
 </html>
