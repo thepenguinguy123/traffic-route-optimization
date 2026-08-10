@@ -107,3 +107,7 @@ def test_metrics_endpoint_compares_selected_algorithms():
         "greedy_best_first",
     ]
     assert all(item["found"] for item in payload["metrics"])
+    assert all(
+        "path" in item and "visited_order" in item and "animation_log" in item
+        for item in payload["metrics"]
+    )

@@ -82,6 +82,7 @@ Kết quả checkpoint nằm trong `backend/data/food_places.json` và bị lo�
 - Route Review mở ở Right Panel. Compare Algorithms mở ở Bottom Panel; khi một panel mở, panel còn lại tự động thu gọn.
 - Right Panel có thể kéo rộng/hẹp; Bottom Panel có thể kéo thay đổi chiều cao và cuộn nội dung.
 - Mỗi step trong Route Review tách tuyến `FROM`/`TO`, khoảng cách, thời gian, congestion, risk và hướng cạnh thành các trường riêng.
+- Có thể click hoặc chọn bằng bàn phím một row trong bảng compare để xem node đã duyệt và final route của thuật toán đó trên map.
 - Tuyến kết quả dùng màu primary `#1769f9`; step đang xem dùng cyan sáng `#22d3ee`; node đã duyệt dùng xanh lá.
 
 ## Quy ước ngôn ngữ và dữ liệu

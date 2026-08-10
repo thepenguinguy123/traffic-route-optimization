@@ -188,6 +188,7 @@ def serialize_core_result(result: SearchResult) -> dict:
 
     return {
         "path": result.path,
+        "visited_order": result.visited_order,
         "animation_log": animation_log,
         "stats": {
             "nodes_explored": result.explored_nodes,
@@ -254,12 +255,25 @@ def compare_metrics():
         )
     except (KeyError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
+    metric_rows = MetricsService.format_summary_metrics(results)
+    for metric, result in zip(metric_rows, results):
+        serialized = serialize_core_result(result)
+        metric.update(
+            {
+                "path": serialized["path"],
+                "visited_order": serialized["visited_order"],
+                "animation_log": serialized["animation_log"],
+                "trace": serialized["trace"],
+                "explanation": serialized["explanation"],
+            }
+        )
+
     return jsonify(
         {
             "start": start,
             "end": goal,
             "cost_profile": profile,
-            "metrics": MetricsService.format_summary_metrics(results),
+            "metrics": metric_rows,
         }
     )
 

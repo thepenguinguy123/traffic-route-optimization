@@ -179,6 +179,9 @@
                                 <strong id="compare-winner">&mdash;</strong>
                                 <span id="compare-winner-detail">Run a comparison to identify the strongest algorithm.</span>
                             </div>
+                            <div id="compare-selection" class="compare-selection" aria-live="polite">
+                                Click an algorithm row to inspect its visited nodes and final route.
+                            </div>
                                                         <div id="compare-metric-summary" class="compare-metric-summary" role="list" aria-label="Algorithm rankings by metric">
                                 <div class="compare-metric-summary__row" role="listitem">
                                     <button type="button" class="compare-metric-selector__button is-active" data-compare-metric="total_cost" aria-pressed="true">Cost</button>
@@ -209,7 +212,7 @@
                             </div>
                             <div class="metrics-table-wrap">
                                 <table class="metrics-table compare-table">
-                                    <caption>Detailed metrics for each algorithm</caption>
+                                    <caption>Click a row to inspect that algorithm on the map.</caption>
                                     <thead>
                                         <tr>
                                             <th>Algorithm</th>

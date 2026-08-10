@@ -48,6 +48,7 @@ let state = {
   routeReview: { path: [], steps: [], activeIndex: -1 },
   comparisonMetrics: [],
   comparisonMetric: "total_cost",
+  selectedComparisonAlgorithm: "",
 };
 
 // ==========================================
@@ -639,13 +640,16 @@ function highlightPath(path) {
 /**
 
  */
-function resetVisualization() {
+function resetMapVisualization() {
   for (const id in state.nodeFeatures) updateMarkerColor(id, "reset");
-  if (state.map) {
-    if (state.map.getLayer("optimal-path-layer")) state.map.removeLayer("optimal-path-layer");
-    if (state.map.getSource("optimal-path")) state.map.removeSource("optimal-path");
-    drawRouteReviewStep(null);
-  }
+  if (!state.map) return;
+  if (state.map.getLayer("optimal-path-layer")) state.map.removeLayer("optimal-path-layer");
+  if (state.map.getSource("optimal-path")) state.map.removeSource("optimal-path");
+  drawRouteReviewStep(null);
+}
+
+function resetVisualization() {
+  resetMapVisualization();
   state.routeReview = { path: [], steps: [], activeIndex: -1 };
   const results = document.getElementById("results-panel"), metrics = document.getElementById("metrics-panel"), list = document.getElementById("route-step-list");
   if (results) results.style.display = "none";
@@ -1400,6 +1404,51 @@ function formatCompareValue(value, config) {
   return numeric.toFixed(config.decimals) + config.unit;
 }
 
+function renderComparisonSelection(metric) {
+  const selection = document.getElementById("compare-selection");
+  if (!selection) return;
+  if (!metric) {
+    selection.textContent = "Click an algorithm row to inspect its visited nodes and final route.";
+    return;
+  }
+  const routeStatus = metric.found ? "Route found" : "No route";
+  selection.textContent = "Selected " + formatAlgorithmName(metric.algorithm) +
+    " / " + routeStatus + " / " + String(metric.visited_order?.length || 0) +
+    " nodes visited";
+}
+
+function selectComparisonAlgorithm(algorithm) {
+  const metric = state.comparisonMetrics.find(
+    (item) => item.algorithm === algorithm,
+  );
+  if (!metric) return;
+
+  state.selectedComparisonAlgorithm = algorithm;
+  document.querySelectorAll("#metrics-table-body tr[data-algorithm]").forEach((row) => {
+    const selected = row.dataset.algorithm === algorithm;
+    row.classList.toggle("is-selected", selected);
+    row.setAttribute("aria-selected", String(selected));
+  });
+  renderComparisonSelection(metric);
+
+  clearTimeout(state.animationTimer);
+  state.animationTimer = null;
+  state.isAnimating = false;
+  state.isPaused = false;
+  resetMapVisualization();
+
+  for (const nodeId of metric.visited_order || []) {
+    updateMarkerColor(nodeId, "visited");
+  }
+  if (metric.path?.length > 1) {
+    highlightPath(metric.path);
+  }
+
+  state.routeReview.path = (metric.path || []).map(String);
+  state.routeReview.steps = buildRouteReview(state.routeReview.path);
+  state.routeReview.activeIndex = -1;
+  renderRouteReview(state.routeReview.path);
+}
 function renderComparisonView(metricKey = state.comparisonMetric) {
   const config = COMPARE_METRIC_CONFIG[metricKey] || COMPARE_METRIC_CONFIG.total_cost;
   const winner = document.getElementById("compare-winner");
@@ -1452,6 +1501,7 @@ function renderMetrics(metrics, profile, context = {}) {
   const panel = document.getElementById("metrics-panel");
   const body = document.getElementById("metrics-table-body");
   state.comparisonMetrics = Array.isArray(metrics) ? metrics : [];
+  state.selectedComparisonAlgorithm = "";
 
   document.getElementById("metrics-profile").textContent = String(profile || "").toUpperCase();
   const startNode = state.nodesData.find((node) => String(node.id) === String(context.start || ""));
@@ -1470,7 +1520,9 @@ function renderMetrics(metrics, profile, context = {}) {
   body.innerHTML = state.comparisonMetrics
     .map((metric) => {
       const found = Boolean(metric.found);
-      return '<tr class="' + (found ? "" : "is-unavailable") + '">' +
+      const selected = metric.algorithm === state.selectedComparisonAlgorithm;
+      return '<tr class="' + (found ? "" : "is-unavailable") + (selected ? " is-selected" : "") + '"' +
+        ' data-algorithm="' + escapeHtml(metric.algorithm) + '" tabindex="0" role="button" aria-selected="' + selected + '">' +
         '<th scope="row">' + escapeHtml(formatAlgorithmName(metric.algorithm)) + '</th>' +
         '<td><span class="compare-status ' + (found ? "is-found" : "is-missing") + '">' +
         (found ? "Found" : "No path") + '</span></td>' +
@@ -1482,6 +1534,15 @@ function renderMetrics(metrics, profile, context = {}) {
     })
     .join("");
 
+  body.querySelectorAll("tr[data-algorithm]").forEach((row) => {
+    row.addEventListener("click", () => selectComparisonAlgorithm(row.dataset.algorithm));
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      selectComparisonAlgorithm(row.dataset.algorithm);
+    });
+  });
+  renderComparisonSelection(null);
   renderComparisonView(state.comparisonMetric);
   panel.hidden = false;
   setCompareDrawerVisible(true);

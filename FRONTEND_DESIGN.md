@@ -32,3 +32,7 @@ Frontend không yêu cầu React hoặc Tailwind; HTML/CSS/JavaScript thuần ph
 ## Chi tiết từng bước
 
 Mỗi bước tuyến được trình bày theo ba lớp: cặp điểm `FROM`/`TO`, lưới bốn thông số khoảng cách/thời gian/ùn tắc/rủi ro, và dòng mô tả hướng cạnh. Cấu trúc này giữ tên địa điểm dài trong vùng giới hạn, giúp người dùng quét nhanh thông tin mà không phải đọc chuỗi dấu gạch chéo.
+
+## Tương tác bảng so sánh
+
+Mỗi row thuật toán là một control có thể click hoặc chọn bằng `Enter`/`Space`. Khi được chọn, row đổi trạng thái, bản đồ reset trạng thái duyệt trước đó, node đã duyệt chuyển sang xanh lá và final route chuyển sang primary; Bottom Panel vẫn được giữ mở để đối chiếu.

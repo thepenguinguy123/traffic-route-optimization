@@ -1740,6 +1740,18 @@ body.is-resizing {
     line-height: 1.45;
 }
 
+.compare-selection {
+    margin: 8px 14px 0;
+    padding: 8px 10px;
+    border: 1px solid #b8c5d4;
+    border-left: 3px solid var(--primary);
+    background: #f8fafc;
+    color: #52647d;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
 .compare-metric-selector {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1884,6 +1896,26 @@ body.is-resizing {
     padding: 8px 7px;
 }
 
+.compare-table tbody tr[data-algorithm] {
+    cursor: pointer;
+    transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.compare-table tbody tr[data-algorithm]:hover,
+.compare-table tbody tr[data-algorithm]:focus-visible,
+.compare-table tbody tr[data-algorithm].is-selected {
+    outline: none;
+    background: #eef4ff;
+    box-shadow: inset 4px 0 var(--primary);
+}
+
+.compare-table tbody tr[data-algorithm]:focus-visible {
+    box-shadow: inset 4px 0 var(--primary), 0 0 0 2px var(--primary);
+}
+
+.compare-table tbody tr[data-algorithm] th {
+    color: var(--primary);
+}
 .compare-table tbody th {
     color: var(--black);
     font-size: 0.7rem;
