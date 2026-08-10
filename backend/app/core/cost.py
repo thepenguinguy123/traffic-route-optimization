@@ -2,7 +2,6 @@
 
 from .models import CostProfile, RoadEdge
 
-
 CONGESTION_MULTIPLIERS = {
     1: 1.00,
     2: 1.15,
@@ -50,7 +49,11 @@ class CostCalculator:
         normalized_distance = min(edge.distance_km / self.max_distance_km, 1.0)
         normalized_actual_time = min(actual_time / self.max_time_min, 1.0)
         normalized_congestion = (edge.congestion_level - 1) / 4
-        normalized_risk = edge.risk_level / 5
+
+        risk_factor = (
+            edge.risk_factor if edge.risk_factor is not None else float(edge.risk_level)
+        )
+        normalized_risk = min(max(risk_factor / 5, 0.0), 1.0)
 
         return (
             profile.distance_weight * normalized_distance

@@ -1,4 +1,4 @@
-"""Đọc bộ dữ liệu nodes/edges dạng JavaScript được sinh từ dataset sạch."""
+"""Load validated graph entities from the cleaned JavaScript datasets."""
 
 import json
 from pathlib import Path
@@ -15,35 +15,31 @@ EDGES_DATA_PATH = DATA_DIR / "edges_clean.js"
 
 
 def load_js_array(file_path: Path) -> list[dict[str, Any]]:
-    """Đọc array JSON nằm trong file JavaScript const."""
+    """Extract and validate an object array from a JavaScript data file."""
 
     text = file_path.read_text(encoding="utf-8")
     start = text.find("[")
     end = text.rfind("]")
     if start < 0 or end < start:
-        raise ValueError(f"Không tìm thấy JSON array trong {file_path}")
+        raise ValueError(f"No JSON array was found in {file_path}")
     payload = json.loads(text[start : end + 1])
     if not isinstance(payload, list) or not all(
         isinstance(item, dict) for item in payload
     ):
-        raise ValueError(f"Dataset {file_path} phải là array object")
+        raise ValueError(f"Dataset {file_path} must be an array of objects")
     return payload
 
 
 def load_clean_nodes(file_path: Path = NODES_DATA_PATH) -> list[TrafficNode]:
-    """Chuyển nodes_clean.js thành domain nodes, giữ metadata gốc."""
+    """Load cleaned node records as validated traffic nodes."""
 
     nodes = []
     for record in load_js_array(file_path):
         required = {"id", "name", "lat", "lng", "type"}
         missing = required.difference(record)
         if missing:
-            raise ValueError(f"Node thiếu trường: {sorted(missing)}")
-        metadata = {
-            key: value
-            for key, value in record.items()
-            if key not in required
-        }
+            raise ValueError(f"Node is missing fields: {sorted(missing)}")
+        metadata = {key: value for key, value in record.items() if key not in required}
         nodes.append(
             TrafficNode(
                 id=str(record["id"]),
@@ -58,7 +54,7 @@ def load_clean_nodes(file_path: Path = NODES_DATA_PATH) -> list[TrafficNode]:
 
 
 def load_clean_edges(file_path: Path = EDGES_DATA_PATH) -> list[RoadEdge]:
-    """Chuyển edges_clean.js thành directed road edges."""
+    """Load cleaned edge records as validated road edges."""
 
     edges = []
     for record in load_js_array(file_path):
@@ -73,7 +69,7 @@ def load_clean_edges(file_path: Path = EDGES_DATA_PATH) -> list[RoadEdge]:
         }
         missing = required.difference(record)
         if missing:
-            raise ValueError(f"Edge thiếu trường: {sorted(missing)}")
+            raise ValueError(f"Edge is missing fields: {sorted(missing)}")
         risk_factor = float(record["risk_factor"])
         edges.append(
             RoadEdge(
@@ -81,9 +77,7 @@ def load_clean_edges(file_path: Path = EDGES_DATA_PATH) -> list[RoadEdge]:
                 target=str(record["target"]),
                 distance_km=float(record["distance_km"]),
                 base_time_min=float(record["base_time_min"]),
-                congestion_level=max(
-                    1, min(5, int(record["congestion_level"]))
-                ),
+                congestion_level=max(1, min(5, int(record["congestion_level"]))),
                 road_type=str(record["road_type"]),
                 risk_level=max(0, min(5, round(risk_factor))),
                 restriction="none",
@@ -98,7 +92,7 @@ def load_clean_graph(
     nodes_path: Path = NODES_DATA_PATH,
     edges_path: Path = EDGES_DATA_PATH,
 ) -> TrafficGraph:
-    """Tạo graph core từ đúng bộ dữ liệu sạch."""
+    """Build a traffic graph from the cleaned node and edge datasets."""
 
     graph = TrafficGraph(CostCalculator())
     for node in load_clean_nodes(nodes_path):

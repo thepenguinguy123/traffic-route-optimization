@@ -1,4 +1,4 @@
-"""Đo và so sánh các thuật toán trên cùng một graph core/profile."""
+"""Run comparable searches and serialize their benchmark metrics."""
 
 from collections.abc import Iterable
 from typing import Any
@@ -20,7 +20,7 @@ DEFAULT_COMPARISON_ALGORITHMS = (
 
 
 class MetricsService:
-    """Chạy nhiều thuật toán cùng input và tạo summary ổn định cho API."""
+    """Coordinate algorithm comparisons against one graph."""
 
     @staticmethod
     def compare_algorithms(
@@ -30,15 +30,15 @@ class MetricsService:
         profile_name: str = "balanced",
         algorithm_names: Iterable[str] = DEFAULT_COMPARISON_ALGORITHMS,
     ) -> list[SearchResult]:
-        """Trả kết quả từng thuật toán theo đúng thứ tự yêu cầu."""
+        """Coordinate algorithm comparisons against one graph."""
 
         if profile_name not in COST_PROFILES:
-            raise ValueError(f"Cost profile không tồn tại: {profile_name}")
+            raise ValueError(f"Unknown cost profile: {profile_name}")
         profile = COST_PROFILES[profile_name]
         results = []
         for algorithm_name in algorithm_names:
             if algorithm_name not in ALGORITHM_REGISTRY:
-                raise ValueError(f"Thuật toán không tồn tại: {algorithm_name}")
+                raise ValueError(f"Unknown algorithm: {algorithm_name}")
             results.append(
                 ALGORITHM_REGISTRY[algorithm_name](graph, start, goal, profile)
             )
@@ -46,7 +46,7 @@ class MetricsService:
 
     @staticmethod
     def format_summary_metrics(results: Iterable[SearchResult]) -> list[dict[str, Any]]:
-        """Chuyển SearchResult thành dữ liệu gọn cho bảng metrics."""
+        """Convert search results into stable API-ready metric records."""
 
         return [
             {
@@ -54,15 +54,11 @@ class MetricsService:
                 "found": result.found,
                 "explored_nodes": result.explored_nodes,
                 "processing_time_ms": round(result.processing_time_ms, 4),
-                "total_distance_km": round(result.total_distance, 3)
-                if result.found
-                else None,
-                "total_time_min": round(result.total_time, 3)
-                if result.found
-                else None,
-                "total_cost": round(result.total_cost, 4)
-                if result.found
-                else None,
+                "total_distance_km": (
+                    round(result.total_distance, 3) if result.found else None
+                ),
+                "total_time_min": round(result.total_time, 3) if result.found else None,
+                "total_cost": round(result.total_cost, 4) if result.found else None,
                 "path_length": len(result.path) if result.found else 0,
             }
             for result in results

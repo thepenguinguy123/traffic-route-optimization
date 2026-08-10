@@ -1,1 +1,1 @@
-"""Các route API của ứng dụng."""
+"""HTTP API package for the route optimization application."""

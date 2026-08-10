@@ -1,9 +1,8 @@
-"""Hình học vùng tìm kiếm quán ăn."""
+"""Geospatial helpers for the configured food-place collection area."""
 
 from typing import Iterable, Sequence, Tuple
 
 
-# Thứ tự dữ liệu đầu vào: (lat, lng), đi theo chu vi tứ giác.
 FOOD_AREA_POLYGON: Tuple[Tuple[float, float], ...] = (
     (10.79185, 106.69584),
     (10.78495, 106.68911),
@@ -17,7 +16,7 @@ def point_in_polygon(
     longitude: float,
     polygon: Sequence[Tuple[float, float]] = FOOD_AREA_POLYGON,
 ) -> bool:
-    """Kiểm tra điểm có nằm trong đa giác bằng thuật toán ray casting."""
+    """Return whether a latitude-longitude point lies inside a polygon."""
     inside = False
     point_count = len(polygon)
     previous_index = point_count - 1
@@ -28,12 +27,9 @@ def point_in_polygon(
         crosses_latitude = (current_lat > latitude) != (previous_lat > latitude)
 
         if crosses_latitude:
-            intersection_lng = (
-                (previous_lng - current_lng)
-                * (latitude - current_lat)
-                / (previous_lat - current_lat)
-                + current_lng
-            )
+            intersection_lng = (previous_lng - current_lng) * (
+                latitude - current_lat
+            ) / (previous_lat - current_lat) + current_lng
             if longitude < intersection_lng:
                 inside = not inside
         previous_index = current_index
@@ -44,7 +40,7 @@ def point_in_polygon(
 def polygon_bounds(
     polygon: Iterable[Tuple[float, float]] = FOOD_AREA_POLYGON,
 ) -> Tuple[float, float, float, float]:
-    """Trả về bounds bao ngoài theo dạng west,south,east,north."""
+    """Return polygon bounds as west, south, east, and north."""
     points = list(polygon)
     latitudes = [point[0] for point in points]
     longitudes = [point[1] for point in points]

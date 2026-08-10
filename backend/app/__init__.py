@@ -1,1 +1,1 @@
-"""Gói ứng dụng backend Traffic Route Optimization."""
+"""Traffic route optimization application package."""

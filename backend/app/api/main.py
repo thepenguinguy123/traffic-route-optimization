@@ -1,4 +1,4 @@
-"""HTTP API cho traffic graph core và giao diện mô phỏng tuyến đường."""
+"""Flask API for graph search, metrics, TSP, and public map configuration."""
 
 import os
 from dataclasses import asdict
@@ -14,7 +14,6 @@ from ..core.errors import NodeNotFoundError
 from ..core.food_area import point_in_polygon
 from ..core.graph import TrafficGraph
 from ..core.search_models import SearchResult
-from ..repositories.graph_data import NODES
 from ..repositories.clean_dataset_repository import load_clean_graph
 from ..services.multi_location_service import MultiLocationService
 from ..services.metrics_service import (
@@ -43,57 +42,73 @@ ALGORITHM_OPTIONS = [
     {
         "id": "bfs",
         "label": "BFS",
-        "description": "Ưu tiên tuyến ít bước nhất.",
+        "description": "Prioritize routes with the fewest hops.",
         "group": "graph_core",
     },
     {
         "id": "dfs",
         "label": "DFS",
-        "description": "Đi sâu theo từng nhánh trước.",
+        "description": "Explore each branch depth-first.",
         "group": "graph_core",
     },
     {
         "id": "ucs",
         "label": "UCS",
-        "description": "Tối ưu chi phí giao thông tích lũy.",
+        "description": "Minimize accumulated traffic cost.",
         "group": "graph_core",
     },
     {
         "id": "astar",
         "label": "A*",
-        "description": "UCS kết hợp heuristic khoảng cách.",
+        "description": "Combine UCS with a distance heuristic.",
         "group": "graph_core",
     },
     {
         "id": "greedy_best_first",
         "label": "Greedy Best-First",
-        "description": "Ưu tiên node gần đích theo heuristic.",
+        "description": "Prioritize nodes nearest to the destination.",
         "group": "graph_core",
     },
     {
         "id": "ida_star",
         "label": "IDA*",
-        "description": "A* với bộ nhớ thấp và deepening bound.",
+        "description": "Use iterative-deepening A* with bounded memory.",
         "group": "graph_core",
     },
     {
         "id": "tsp",
         "label": "TSP",
-        "description": "Đi qua nhiều waypoint theo thứ tự tối ưu.",
+        "description": "Visit multiple waypoints in an optimized order.",
         "group": "multi_stop",
     },
 ]
 
 COST_OPTIONS = [
-    {"id": "balanced", "label": "Cân bằng", "description": "Cân đối khoảng cách, thời gian và rủi ro."},
-    {"id": "shortest_distance", "label": "Ngắn nhất", "description": "Ưu tiên tổng quãng đường."},
-    {"id": "fastest_route", "label": "Nhanh nhất", "description": "Ưu tiên thời gian di chuyển."},
-    {"id": "avoid_congestion", "label": "Tránh ùn tắc", "description": "Giảm ảnh hưởng của congestion."},
+    {
+        "id": "balanced",
+        "label": "Balanced",
+        "description": "Balance distance, travel time, and risk.",
+    },
+    {
+        "id": "shortest_distance",
+        "label": "Shortest Distance",
+        "description": "Prioritize total distance.",
+    },
+    {
+        "id": "fastest_route",
+        "label": "Fastest Route",
+        "description": "Prioritize travel time.",
+    },
+    {
+        "id": "avoid_congestion",
+        "label": "Avoid Congestion",
+        "description": "Reduce the impact of congestion.",
+    },
 ]
 
 
 def build_traffic_graph() -> TrafficGraph:
-    """Tải đúng graph sạch từ nodes_clean.js và edges_clean.js."""
+    """Load the clean node and edge datasets into the traffic graph."""
 
     return load_clean_graph()
 
@@ -103,7 +118,7 @@ MULTI_LOCATION_SERVICE = MultiLocationService()
 
 
 def graph_response() -> dict:
-    """Trả graph core theo shape mà frontend bản đồ đang sử dụng."""
+    """Serialize the traffic graph for the frontend map adapter."""
 
     graph = TRAFFIC_GRAPH.to_dict()
     nodes = {
@@ -136,7 +151,7 @@ def graph_response() -> dict:
 
 
 def profile_from_request(data: dict) -> str:
-    """Đọc cost profile mới và vẫn hỗ trợ payload cost_type cũ."""
+    """Resolve the requested cost profile with legacy cost_type support."""
 
     profile = data.get("cost_profile")
     if profile in COST_PROFILES:
@@ -150,7 +165,7 @@ def profile_from_request(data: dict) -> str:
 
 
 def serialize_core_result(result: SearchResult) -> dict:
-    """Đổi SearchResult thành response animation ổn định cho frontend."""
+    """Serialize a search result and its animation trace for the frontend."""
 
     animation_log = []
     for trace in result.frontier_steps:
@@ -190,35 +205,35 @@ def serialize_core_result(result: SearchResult) -> dict:
 
 @app.route("/")
 def health_check():
-    """Kiểm tra trạng thái server."""
+    """Return the backend health status."""
 
     return jsonify({"status": "ok", "message": "API is running"})
 
 
 @app.route("/api/config", methods=["GET"])
 def get_public_config():
-    """Chỉ trả cấu hình cần thiết cho frontend, không trả REST API key."""
+    """Return only public configuration required by the frontend."""
 
     return jsonify({"map_tiles_key": os.getenv("GOONG_MAP_TILES_KEY", "")})
 
 
 @app.route("/api/algorithms", methods=["GET"])
 def get_algorithms():
-    """Trả danh sách thuật toán để frontend dựng selection."""
+    """Return algorithm options for the frontend selector."""
 
     return jsonify(ALGORITHM_OPTIONS)
 
 
 @app.route("/api/cost-profiles", methods=["GET"])
 def get_cost_profiles():
-    """Trả danh sách profile chi phí được graph core hỗ trợ."""
+    """Return supported cost profiles for the frontend selector."""
 
     return jsonify(COST_OPTIONS)
 
 
 @app.route("/api/metrics", methods=["POST"])
 def compare_metrics():
-    """So sánh metrics của nhiều thuật toán trên cùng một cặp node."""
+    """Compare algorithms for the same endpoints and cost profile."""
 
     data = request.get_json(silent=True) or {}
     start = str(data.get("start", ""))
@@ -226,9 +241,9 @@ def compare_metrics():
     profile = profile_from_request(data)
     algorithm_names = data.get("algorithms", DEFAULT_COMPARISON_ALGORITHMS)
     if not start or not goal or not isinstance(algorithm_names, (list, tuple)):
-        return jsonify({"error": "Thiếu start, end hoặc algorithms hợp lệ."}), 400
+        return jsonify({"error": "Valid start, end, and algorithms are required."}), 400
     if not TRAFFIC_GRAPH.has_node(start) or not TRAFFIC_GRAPH.has_node(goal):
-        return jsonify({"error": "Node bắt đầu hoặc kết thúc không hợp lệ."}), 400
+        return jsonify({"error": "The start or end node is invalid."}), 400
     try:
         results = MetricsService.compare_algorithms(
             TRAFFIC_GRAPH,
@@ -251,48 +266,52 @@ def compare_metrics():
 
 @app.route("/api/graph", methods=["GET"])
 def get_graph():
-    """Trả graph core theo format GeoJSON adapter của frontend."""
+    """Return the runtime graph used by the frontend."""
 
     return jsonify(graph_response())
 
 
 @app.route("/api/nodes", methods=["GET"])
 def get_nodes():
-    """Trả danh sách node cho selection."""
+    """Return selectable runtime graph nodes."""
 
     return jsonify(
         [
             {
-                "id": node_id,
-                "name": node["name"],
-                "type": node.get("type", "intersection"),
-                "address": node.get("address", ""),
+                "id": node.id,
+                "name": node.name,
+                "type": node.node_type,
+                "address": node.metadata.get("address", ""),
             }
-            for node_id, node in sorted(NODES.items(), key=lambda item: item[0])
+            for node in sorted(
+                TRAFFIC_GRAPH.get_all_nodes(),
+                key=lambda item: item.id,
+            )
         ]
     )
 
 
 @app.route("/api/food-places", methods=["GET"])
 def get_food_places():
-    """Trả tối đa 40 địa điểm nằm trong vùng lọc."""
+    """Return up to 40 food places from the runtime graph."""
 
     places = []
-    for node_id, node in NODES.items():
-        if node.get("type") != "food":
+    for node in TRAFFIC_GRAPH.get_all_nodes():
+        if node.node_type != "food":
             continue
         places.append(
             {
-                "id": node_id,
-                "name": node["name"],
-                "address": node.get("address", ""),
-                "lat": node["lat"],
-                "lng": node["lng"],
+                "id": node.id,
+                "name": node.name,
+                "address": node.metadata.get("address", ""),
+                "lat": node.latitude,
+                "lng": node.longitude,
                 "type": "food",
-                "source": node.get("source", "clean_dataset"),
-                "on_edge": node.get("on_edge"),
+                "source": node.metadata.get("source", "clean_dataset"),
+                "on_edge": node.metadata.get("on_edge"),
                 "within_food_area": point_in_polygon(
-                    float(node["lat"]), float(node["lng"])
+                    node.latitude,
+                    node.longitude,
                 ),
             }
         )
@@ -301,7 +320,7 @@ def get_food_places():
 
 @app.route("/api/search", methods=["POST"])
 def search_route():
-    """Chạy thuật toán graph core cho một cặp node."""
+    """Run one registered graph-search algorithm."""
 
     data = request.get_json(silent=True) or {}
     start = str(data.get("start", ""))
@@ -309,9 +328,12 @@ def search_route():
     algorithm = str(data.get("algorithm", "")).lower()
     profile_name = profile_from_request(data)
     if not start or not end or algorithm not in ALGORITHM_REGISTRY:
-        return jsonify({"error": "Thiếu hoặc sai start, end, algorithm."}), 400
+        return (
+            jsonify({"error": "Valid start, end, and algorithm values are required."}),
+            400,
+        )
     if not TRAFFIC_GRAPH.has_node(start) or not TRAFFIC_GRAPH.has_node(end):
-        return jsonify({"error": "Node bắt đầu hoặc kết thúc không hợp lệ."}), 400
+        return jsonify({"error": "The start or end node is invalid."}), 400
 
     try:
         result = ALGORITHM_REGISTRY[algorithm](
@@ -327,18 +349,18 @@ def search_route():
 
 @app.route("/api/tsp", methods=["POST"])
 def tsp_route():
-    """Tối ưu nhiều waypoint bằng A* kết hợp Nearest Neighbor."""
+    """Build a multi-stop route using A* segment costs."""
 
     data = request.get_json(silent=True) or {}
     waypoints = data.get("waypoints")
     if not isinstance(waypoints, list) or len(waypoints) < 2:
-        return jsonify({"error": "Cần ít nhất 2 waypoint để tính TSP."}), 400
-    if any(str(waypoint) not in NODES for waypoint in waypoints):
-        return jsonify({"error": "Danh sách waypoint không hợp lệ."}), 400
+        return jsonify({"error": "At least two waypoints are required for TSP."}), 400
+    if any(not TRAFFIC_GRAPH.has_node(str(waypoint)) for waypoint in waypoints):
+        return jsonify({"error": "The waypoint list is invalid."}), 400
     profile = profile_from_request(data)
     start_node = str(data.get("start", waypoints[0]))
-    if start_node not in NODES:
-        return jsonify({"error": "Start node không hợp lệ."}), 400
+    if not TRAFFIC_GRAPH.has_node(start_node):
+        return jsonify({"error": "The start node is invalid."}), 400
 
     try:
         result = MULTI_LOCATION_SERVICE.optimize_delivery_route(
@@ -347,6 +369,7 @@ def tsp_route():
             graph=TRAFFIC_GRAPH,
             profile=profile,
             return_to_start=bool(data.get("return_to_start", False)),
+            order_mode=str(data.get("order_mode", "auto")),
         )
     except (KeyError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
@@ -383,7 +406,13 @@ def tsp_route():
             },
             "algorithm": result["algorithm"],
             "found": result["found"],
-            "explanation": "Nearest Neighbor sắp xếp các waypoint theo chi phí A* thấp nhất ở mỗi bước.",
+            "explanation": (
+                "The route preserves the requested waypoint order and uses "
+                "A* for each segment."
+                if result["algorithm"] == "ordered_tsp"
+                else "Nearest Neighbor orders waypoints by the lowest A* "
+                "cost at each step."
+            ),
             "unvisited_left": result["unvisited_left"],
         }
     )

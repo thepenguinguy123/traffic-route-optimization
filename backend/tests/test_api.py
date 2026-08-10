@@ -1,4 +1,4 @@
-"""Kiểm tra contract API giữa graph core và frontend."""
+"""Integration tests for the public HTTP API contract."""
 
 from backend.app.api.main import app
 

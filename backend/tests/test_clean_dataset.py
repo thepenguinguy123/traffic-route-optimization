@@ -1,4 +1,4 @@
-"""Kiểm tra tính toàn vẹn của dataset nodes/edges được dùng runtime."""
+"""Validation tests for the cleaned graph datasets."""
 
 from backend.app.repositories.clean_dataset_repository import (
     load_clean_edges,

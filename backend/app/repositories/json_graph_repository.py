@@ -71,13 +71,10 @@ def materialize_traffic_profile(
     """Create an independent graph with one traffic profile applied."""
 
     if profile_name not in profiles:
-        raise InvalidTrafficProfileError(
-            f"Traffic profile not found: {profile_name}"
-        )
+        raise InvalidTrafficProfileError(f"Traffic profile not found: {profile_name}")
 
     updated_edges = {
-        (edge.source, edge.target): replace(edge)
-        for edge in base_graph.get_all_edges()
+        (edge.source, edge.target): replace(edge) for edge in base_graph.get_all_edges()
     }
     for override in profiles[profile_name]["edge_overrides"]:
         try:
@@ -117,9 +114,7 @@ def _load_records(file_path: str, collection_name: str) -> list[dict]:
         payload = json.load(file)
 
     if not isinstance(payload, dict) or set(payload) != {collection_name}:
-        raise ValueError(
-            f"JSON must contain only the '{collection_name}' collection"
-        )
+        raise ValueError(f"JSON must contain only the '{collection_name}' collection")
 
     records = payload[collection_name]
     if not isinstance(records, list):
@@ -134,9 +129,7 @@ def _load_mapping(file_path: str, collection_name: str) -> dict:
         payload = json.load(file)
 
     if not isinstance(payload, dict) or set(payload) != {collection_name}:
-        raise ValueError(
-            f"JSON must contain only the '{collection_name}' collection"
-        )
+        raise ValueError(f"JSON must contain only the '{collection_name}' collection")
 
     mapping = payload[collection_name]
     if not isinstance(mapping, dict):

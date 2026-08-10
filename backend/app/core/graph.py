@@ -53,8 +53,7 @@ class TrafficGraph:
         """Return every traffic node."""
 
         return [
-            attributes[_NODE_DATA_KEY]
-            for _, attributes in self._graph.nodes(data=True)
+            attributes[_NODE_DATA_KEY] for _, attributes in self._graph.nodes(data=True)
         ]
 
     def add_edge(self, edge: RoadEdge) -> None:
@@ -110,9 +109,7 @@ class TrafficGraph:
 
         neighbors = self.get_neighbors(node_id)
         if vehicle_type != "motorbike":
-            raise UnsupportedVehicleError(
-                f"Unsupported vehicle: {vehicle_type}"
-            )
+            raise UnsupportedVehicleError(f"Unsupported vehicle: {vehicle_type}")
 
         return [
             neighbor_id
@@ -185,9 +182,7 @@ class TrafficGraph:
             * cos(target_latitude)
             * sin(longitude_delta / 2) ** 2
         )
-        central_angle = 2 * asin(
-            sqrt(min(1.0, max(0.0, haversine_value)))
-        )
+        central_angle = 2 * asin(sqrt(min(1.0, max(0.0, haversine_value))))
         return _EARTH_RADIUS_KM * central_angle
 
     def to_dict(self) -> dict:
@@ -236,9 +231,7 @@ class TrafficGraph:
         edges = []
         for source, target in zip(path, path[1:]):
             if not self.has_edge(source, target):
-                raise InvalidPathError(
-                    f"Invalid path transition: {source} -> {target}"
-                )
+                raise InvalidPathError(f"Invalid path transition: {source} -> {target}")
             edges.append(self.get_edge(source, target))
         return edges
 

@@ -1,4 +1,4 @@
-"""Iterative Deepening A* trên traffic graph core."""
+"""Iterative-deepening A* search for the traffic graph core."""
 
 from time import perf_counter
 
@@ -19,7 +19,7 @@ def search(
     goal: str,
     profile: CostProfile,
 ) -> SearchResult:
-    """Tìm nghiệm theo các ngưỡng f(n) tăng dần, tôn trọng cạnh một chiều."""
+    """Find a route using increasing f-cost bounds and directed edges."""
 
     started_at = perf_counter()
     graph.get_node(start)
@@ -29,8 +29,6 @@ def search(
     visited_order: list[str] = []
     frontier_steps: list[SearchTraceStep] = []
     found_path: list[str] = []
-    max_iterations = max(32, len(graph.get_all_nodes()) * 2)
-    iterations = 0
     max_expansions = max(512, len(graph.get_all_nodes()) * 4)
     expansions = 0
     budget_exceeded = False
@@ -77,9 +75,6 @@ def search(
         return minimum_exceeded
 
     while True:
-        iterations += 1
-        if iterations > max_iterations:
-            break
         result = visit(start, 0.0, [start], {})
         if found_path or result == "FOUND":
             break
@@ -102,8 +97,8 @@ def search(
         fallback = astar_search(graph, start, goal, profile)
         fallback.algorithm = "ida_star"
         fallback.message = (
-            "IDA* vượt budget mở rộng trên graph lớn; đã dùng A* để bảo đảm "
-            "kết quả ổn định."
+            "IDA* exceeded the expansion budget on a large graph; A* was used "
+            "to guarantee a complete result."
         )
         return fallback
 
