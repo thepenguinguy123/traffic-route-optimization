@@ -476,6 +476,10 @@ button:hover {
 }
 
 /* Legend */
+#legend {
+    background: var(--white);
+}
+
 .legend-list {
     list-style: none;
     font-size: 0.85rem;
@@ -2318,4 +2322,34 @@ body.is-resizing {
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+/* Structured route reasoning */
+.explanation-details {
+    display: grid;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-left: 3px solid var(--primary);
+    background: var(--secondary);
+    color: var(--color-text-primary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.explanation-details strong {
+    color: var(--primary);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.explanation-details > div {
+    display: grid;
+    grid-template-columns: minmax(7rem, auto) 1fr;
+    gap: var(--spacing-sm);
+    overflow-wrap: anywhere;
+}
+
+.explanation-details__label {
+    font-weight: 700;
 }

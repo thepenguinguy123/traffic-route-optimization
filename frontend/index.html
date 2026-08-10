@@ -100,7 +100,18 @@
                     </div>
                     <p id="cost-description" class="control-hint">Balance distance, travel time, and risk.</p>
                 </div>
-                <div class="control-group">
+                <div class="control-group scenario-control">
+                    <div class="control-label-row">
+                        <label for="traffic-scenario-select">Traffic scenario</label>
+                        <span class="control-kicker">TRAFFIC MODE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="traffic-scenario-select" class="select">
+                            <option value="normal">Normal</option>
+                        </select>
+                    </div>
+                    <p id="traffic-scenario-description" class="control-hint">Baseline daytime traffic.</p>
+                </div>                <div class="control-group">
                     <label for="speed-slider">Animation Speed</label>
                     <input type="range" id="speed-slider" min="1" max="100" value="50">
                     <div class="slider-labels">
@@ -242,6 +253,7 @@
                         <div class="explanation-box">
                             <span class="stat-label">Analysis:</span>
                             <div id="explanation-text"></div>
+                            <div id="explanation-details" class="explanation-details" hidden></div>
                         </div>
                     </div>
                     <section id="route-review-panel" class="route-review" aria-labelledby="route-review-title">

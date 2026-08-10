@@ -14,8 +14,12 @@ from ..core.errors import NodeNotFoundError
 from ..core.food_area import point_in_polygon
 from ..core.graph import TrafficGraph
 from ..core.search_models import SearchResult
-from ..repositories.clean_dataset_repository import load_clean_graph
+from ..repositories.clean_dataset_repository import (
+    load_clean_graph,
+    load_traffic_scenarios,
+)
 from ..services.multi_location_service import MultiLocationService
+from ..services.route_explanation_service import RouteExplanationService
 from ..services.metrics_service import (
     DEFAULT_COMPARISON_ALGORITHMS,
     MetricsService,
@@ -115,12 +119,29 @@ def build_traffic_graph() -> TrafficGraph:
 
 TRAFFIC_GRAPH = build_traffic_graph()
 MULTI_LOCATION_SERVICE = MultiLocationService()
+TRAFFIC_SCENARIOS = load_traffic_scenarios()
+DEFAULT_SCENARIO = "normal"
 
 
-def graph_response() -> dict:
+def scenario_from_request(data: dict) -> str:
+    """Resolve and validate a requested traffic scenario."""
+
+    scenario = str(data.get("scenario", DEFAULT_SCENARIO))
+    if scenario not in TRAFFIC_SCENARIOS:
+        raise ValueError(f"Unknown traffic scenario: {scenario}")
+    return scenario
+
+
+def graph_from_request(data: dict) -> TrafficGraph:
+    """Return the cached graph variant selected by the request."""
+
+    return load_clean_graph(scenario=scenario_from_request(data))
+
+
+def graph_response(graph: TrafficGraph = TRAFFIC_GRAPH) -> dict:
     """Serialize the traffic graph for the frontend map adapter."""
 
-    graph = TRAFFIC_GRAPH.to_dict()
+    graph = graph.to_dict()
     nodes = {
         node["id"]: {
             "name": node["name"],
@@ -164,19 +185,24 @@ def profile_from_request(data: dict) -> str:
     return legacy_map.get(data.get("cost_type"), "balanced")
 
 
-def serialize_core_result(result: SearchResult) -> dict:
+def serialize_core_result(
+    result: SearchResult,
+    explanation: str | None = None,
+    explanation_details: dict | None = None,
+) -> dict:
     """Serialize a search result and its animation trace for the frontend."""
 
     animation_log = []
     for trace in result.frontier_steps:
-        animation_log.append(
-            {
-                "step": len(animation_log) + 1,
-                "node": trace.current.node_id,
-                "status": "frontier",
-                "parent": trace.current.parent_id,
-            }
-        )
+        for frontier_item in trace.frontier:
+            animation_log.append(
+                {
+                    "step": len(animation_log) + 1,
+                    "node": frontier_item.node_id,
+                    "status": "frontier",
+                    "parent": frontier_item.parent_id,
+                }
+            )
         animation_log.append(
             {
                 "step": len(animation_log) + 1,
@@ -197,7 +223,8 @@ def serialize_core_result(result: SearchResult) -> dict:
             "total_cost": round(result.total_cost, 4),
             "processing_time_ms": round(result.processing_time_ms, 3),
         },
-        "explanation": result.message,
+        "explanation": explanation if explanation is not None else result.message,
+        "explanation_details": explanation_details or {},
         "algorithm": result.algorithm,
         "found": result.found,
         "trace": [asdict(trace) for trace in result.frontier_steps],
@@ -215,7 +242,27 @@ def health_check():
 def get_public_config():
     """Return only public configuration required by the frontend."""
 
-    return jsonify({"map_tiles_key": os.getenv("GOONG_MAP_TILES_KEY", "")})
+    return jsonify(
+        {
+            "map_tiles_key": os.getenv("GOONG_MAP_TILES_KEY", ""),
+            "traffic_scenarios": [
+                {"id": key, "description": value.get("description", "")}
+                for key, value in TRAFFIC_SCENARIOS.items()
+            ],
+        }
+    )
+
+
+@app.route("/api/traffic-scenarios", methods=["GET"])
+def get_traffic_scenarios():
+    """Return selectable reproducible traffic scenarios."""
+
+    return jsonify(
+        [
+            {"id": key, "description": value.get("description", "")}
+            for key, value in TRAFFIC_SCENARIOS.items()
+        ]
+    )
 
 
 @app.route("/api/algorithms", methods=["GET"])
@@ -240,14 +287,18 @@ def compare_metrics():
     start = str(data.get("start", ""))
     goal = str(data.get("end", data.get("goal", "")))
     profile = profile_from_request(data)
+    try:
+        graph = graph_from_request(data)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
     algorithm_names = data.get("algorithms", DEFAULT_COMPARISON_ALGORITHMS)
     if not start or not goal or not isinstance(algorithm_names, (list, tuple)):
         return jsonify({"error": "Valid start, end, and algorithms are required."}), 400
-    if not TRAFFIC_GRAPH.has_node(start) or not TRAFFIC_GRAPH.has_node(goal):
+    if not graph.has_node(start) or not graph.has_node(goal):
         return jsonify({"error": "The start or end node is invalid."}), 400
     try:
         results = MetricsService.compare_algorithms(
-            TRAFFIC_GRAPH,
+            graph,
             start,
             goal,
             profile,
@@ -257,7 +308,15 @@ def compare_metrics():
         return jsonify({"error": str(error)}), 400
     metric_rows = MetricsService.format_summary_metrics(results)
     for metric, result in zip(metric_rows, results):
-        serialized = serialize_core_result(result)
+        explanation, explanation_details = RouteExplanationService.explain_search(
+            graph,
+            result,
+            start,
+            goal,
+            COST_PROFILES[profile],
+            include_alternative=False,
+        )
+        serialized = serialize_core_result(result, explanation, explanation_details)
         metric.update(
             {
                 "path": serialized["path"],
@@ -265,6 +324,7 @@ def compare_metrics():
                 "animation_log": serialized["animation_log"],
                 "trace": serialized["trace"],
                 "explanation": serialized["explanation"],
+                "explanation_details": serialized["explanation_details"],
             }
         )
 
@@ -273,6 +333,7 @@ def compare_metrics():
             "start": start,
             "end": goal,
             "cost_profile": profile,
+            "scenario": scenario_from_request(data),
             "metrics": metric_rows,
         }
     )
@@ -341,24 +402,37 @@ def search_route():
     end = str(data.get("end", ""))
     algorithm = str(data.get("algorithm", "")).lower()
     profile_name = profile_from_request(data)
+    try:
+        graph = graph_from_request(data)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
     if not start or not end or algorithm not in ALGORITHM_REGISTRY:
         return (
             jsonify({"error": "Valid start, end, and algorithm values are required."}),
             400,
         )
-    if not TRAFFIC_GRAPH.has_node(start) or not TRAFFIC_GRAPH.has_node(end):
+    if not graph.has_node(start) or not graph.has_node(end):
         return jsonify({"error": "The start or end node is invalid."}), 400
 
     try:
         result = ALGORITHM_REGISTRY[algorithm](
-            TRAFFIC_GRAPH,
+            graph,
             start,
             end,
             COST_PROFILES[profile_name],
         )
     except NodeNotFoundError as error:
         return jsonify({"error": str(error)}), 400
-    return jsonify(serialize_core_result(result))
+    explanation, explanation_details = RouteExplanationService.explain_search(
+        graph,
+        result,
+        start,
+        end,
+        COST_PROFILES[profile_name],
+    )
+    serialized = serialize_core_result(result, explanation, explanation_details)
+    serialized["scenario"] = scenario_from_request(data)
+    return jsonify(serialized)
 
 
 @app.route("/api/tsp", methods=["POST"])
@@ -369,24 +443,35 @@ def tsp_route():
     waypoints = data.get("waypoints")
     if not isinstance(waypoints, list) or len(waypoints) < 2:
         return jsonify({"error": "At least two waypoints are required for TSP."}), 400
-    if any(not TRAFFIC_GRAPH.has_node(str(waypoint)) for waypoint in waypoints):
-        return jsonify({"error": "The waypoint list is invalid."}), 400
     profile = profile_from_request(data)
+    try:
+        graph = graph_from_request(data)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    if any(not graph.has_node(str(waypoint)) for waypoint in waypoints):
+        return jsonify({"error": "The waypoint list is invalid."}), 400
     start_node = str(data.get("start", waypoints[0]))
-    if not TRAFFIC_GRAPH.has_node(start_node):
+    if not graph.has_node(start_node):
         return jsonify({"error": "The start node is invalid."}), 400
 
     try:
         result = MULTI_LOCATION_SERVICE.optimize_delivery_route(
             start_node=start_node,
             waypoints=[str(waypoint) for waypoint in waypoints],
-            graph=TRAFFIC_GRAPH,
+            graph=graph,
             profile=profile,
             return_to_start=bool(data.get("return_to_start", False)),
             order_mode=str(data.get("order_mode", "auto")),
         )
     except (KeyError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
+
+    explanation, explanation_details = RouteExplanationService.explain_multi_location(
+        graph,
+        result,
+        COST_PROFILES[profile],
+        str(data.get("order_mode", "auto")),
+    )
 
     animation_log = []
     for node_id in result["path"]:
@@ -419,14 +504,11 @@ def tsp_route():
                 "processing_time_ms": result["processing_time_ms"],
             },
             "algorithm": result["algorithm"],
+            "scenario": scenario_from_request(data),
             "found": result["found"],
-            "explanation": (
-                "The route preserves the requested waypoint order and uses "
-                "A* for each segment."
-                if result["algorithm"] == "ordered_tsp"
-                else "Nearest Neighbor orders waypoints by the lowest A* "
-                "cost at each step."
-            ),
+            "explanation": explanation,
+            "explanation_details": explanation_details,
+            "is_optimal": explanation_details["is_optimal"],
             "unvisited_left": result["unvisited_left"],
         }
     )

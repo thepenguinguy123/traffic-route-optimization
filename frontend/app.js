@@ -3,6 +3,7 @@
 // ==========================================
 const API_BASE = window.TRAFFIC_ROUTE_API_BASE || "http://localhost:8000";
 let GOONG_MAP_KEY = "";
+let AVAILABLE_TRAFFIC_SCENARIOS = [];
 
 // ==========================================
 // STATE
@@ -39,6 +40,7 @@ let state = {
   selectedWaypoints: new Set(),
   tspQueue: [],
   tspMode: "auto",
+  trafficScenario: "normal",
   draggedWaypointId: null,
   selectedEndpoints: { start: "", end: "" },
   edgeMetric: "congestion",
@@ -49,6 +51,8 @@ let state = {
   comparisonMetrics: [],
   comparisonMetric: "total_cost",
   selectedComparisonAlgorithm: "",
+  comparisonContext: { start: "", end: "", profile: "balanced" },
+  comparisonSelectionRequest: 0,
 };
 
 // ==========================================
@@ -297,7 +301,7 @@ function renderNodes(nodes) {
     type: "circle",
     source: "graph-nodes",
     paint: {
-      "circle-radius": 6,
+      "circle-radius": 5,
       "circle-color": [
         "match", ["get", "status"],
         "frontier", "#facc15",
@@ -314,7 +318,7 @@ function renderNodes(nodes) {
         "optimal", "#0b4fbd",
         ["match", ["get", "type"], "food", "#c2410c", "#000000"],
       ],
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
 
@@ -423,11 +427,11 @@ function renderEndpointLayers() {
     source: "selected-route-points",
     filter: selectedFilter,
     paint: {
-      "circle-radius": 12,
+      "circle-radius": 8,
       "circle-color": "#ffffff",
       "circle-opacity": 0.94,
       "circle-stroke-color": "#1769f9",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
   state.map.addLayer({
@@ -436,10 +440,10 @@ function renderEndpointLayers() {
     source: "selected-route-points",
     filter: selectedFilter,
     paint: {
-      "circle-radius": 6,
+      "circle-radius": 5,
       "circle-color": "#1769f9",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
   state.map.addLayer({
@@ -570,10 +574,10 @@ function renderFoodPlaces(places) {
     type: "circle",
     source: "food-places",
     paint: {
-      "circle-radius": 6,
+      "circle-radius": 5,
       "circle-color": "#f97316",
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
 
@@ -679,13 +683,13 @@ function getInterval() {
 
 
  */
-function startAnimation(animationLog, finalPath, stats, explanation) {
+function startAnimation(animationLog, finalPath, stats, explanation, explanationDetails, visitingOrder) {
   resetVisualization();
   state.animationLog = animationLog;
   state.animationStep = 0;
   state.isAnimating = true;
   state.isPaused = false;
-  state.pendingResults = { finalPath, stats, explanation };
+  state.pendingResults = { finalPath, stats, explanation, explanationDetails, visitingOrder };
   togglePlaybackControls(true);
   runAnimationStep();
 }
@@ -711,11 +715,11 @@ function runAnimationStep() {
 function finishAnimation() {
   state.isAnimating = false;
   togglePlaybackControls(false);
-  const { finalPath, stats, explanation } = state.pendingResults;
+  const { finalPath, stats, explanation, explanationDetails, visitingOrder } = state.pendingResults;
   if (finalPath && finalPath.length > 0) {
     highlightPath(finalPath);
   }
-  showResults(finalPath, stats, explanation);
+  showResults(finalPath, stats, explanation, explanationDetails, visitingOrder);
 }
 
 /**
@@ -1122,10 +1126,14 @@ function syncTspQueueFromSelection() {
       profilesResponse.json(),
     ]);
     state.nodesData = nodes;
+    const scenarios = AVAILABLE_TRAFFIC_SCENARIOS.length > 0
+      ? AVAILABLE_TRAFFIC_SCENARIOS
+      : [{ id: "normal", description: "Baseline daytime traffic." }];
 
     const algorithmSelect = document.getElementById("algorithm-select");
     const profileSelect = document.getElementById("cost-profile-select");
     const startSelect = document.getElementById("start-select");
+    const scenarioSelect = document.getElementById("traffic-scenario-select");
     const endSelect = document.getElementById("end-select");
     const tspList = document.getElementById("tsp-waypoints-list");
 
@@ -1145,6 +1153,16 @@ function syncTspQueueFromSelection() {
       profileSelect.add(option);
     });
     updateCostDescription();
+
+    if (scenarioSelect) scenarioSelect.innerHTML = "";
+    scenarios.forEach((scenario) => {
+      const option = new Option(scenario.id.replaceAll("_", " "), scenario.id);
+      option.dataset.description = scenario.description;
+      if (scenarioSelect) scenarioSelect.add(option);
+    });
+    if (scenarioSelect) scenarioSelect.value = "normal";
+    state.trafficScenario = "normal";
+    updateTrafficScenarioDescription();
 
     startSelect.innerHTML = "";
     endSelect.innerHTML = "";
@@ -1295,11 +1313,26 @@ function updateAlgorithmDescription() {
     option?.dataset.description || "Choose a graph exploration strategy.";
 }
 
+function updateTrafficScenarioDescription() {
+  const select = document.getElementById("traffic-scenario-select");
+  const option = select.options[select.selectedIndex];
+  const description = document.getElementById("traffic-scenario-description");
+  if (description) description.textContent = option?.dataset.description || "Baseline daytime traffic.";
+}
 function updateCostDescription() {
   const select = document.getElementById("cost-profile-select");
   const option = select.options[select.selectedIndex];
   document.getElementById("cost-description").innerText =
     option?.dataset.description || "Balance traffic factors.";
+}
+
+const trafficScenarioSelect = document.getElementById("traffic-scenario-select");
+if (trafficScenarioSelect) {
+  trafficScenarioSelect.addEventListener("change", (event) => {
+    state.trafficScenario = event.target.value || "normal";
+    clearSearchResults();
+    updateTrafficScenarioDescription();
+  });
 }
 
 document
@@ -1361,11 +1394,11 @@ document.getElementById("btn-compare").addEventListener("click", async () => {
     const response = await fetch(`${API_BASE}/api/metrics`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ start, end, cost_profile: profile }),
+      body: JSON.stringify({ start, end, cost_profile: profile, scenario: state.trafficScenario }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Metrics failed");
-    renderMetrics(data.metrics, profile, { start, end });
+    renderMetrics(data.metrics, profile, { start, end, scenario: data.scenario });
   } catch (error) {
     console.error("Metrics Error:", error);
     alert(`Metrics error: ${error.message}`);
@@ -1404,7 +1437,38 @@ function formatCompareValue(value, config) {
   return numeric.toFixed(config.decimals) + config.unit;
 }
 
-function renderComparisonSelection(metric) {
+function getComparisonVisitedOrder(metric) {
+  if (Array.isArray(metric?.visited_order) && metric.visited_order.length > 0) {
+    return metric.visited_order.map(String);
+  }
+
+  const visited = [];
+  const seen = new Set();
+  const addNode = (nodeId) => {
+    const normalized = String(nodeId ?? "");
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      visited.push(normalized);
+    }
+  };
+  for (const entry of metric?.animation_log || []) {
+    if (entry.status === "visited") addNode(entry.node);
+  }
+  if (visited.length > 0) return visited;
+
+  for (const step of metric?.trace || []) {
+    addNode(step.current?.node_id || step.current?.node);
+  }
+  return visited;
+}
+
+function getComparisonPath(metric) {
+  if (Array.isArray(metric?.path)) return metric.path.map(String);
+  const trace = Array.isArray(metric?.trace) ? metric.trace : [];
+  const lastPath = trace[trace.length - 1]?.path_so_far;
+  return Array.isArray(lastPath) ? lastPath.map(String) : [];
+}
+function renderComparisonSelection(metric, visitedCount = null) {
   const selection = document.getElementById("compare-selection");
   if (!selection) return;
   if (!metric) {
@@ -1412,12 +1476,14 @@ function renderComparisonSelection(metric) {
     return;
   }
   const routeStatus = metric.found ? "Route found" : "No route";
+  const derivedCount = getComparisonVisitedOrder(metric).length;
+  const displayCount = visitedCount || derivedCount || Number(metric.explored_nodes) || 0;
   selection.textContent = "Selected " + formatAlgorithmName(metric.algorithm) +
-    " / " + routeStatus + " / " + String(metric.visited_order?.length || 0) +
+    " / " + routeStatus + " / " + String(displayCount) +
     " nodes visited";
 }
 
-function selectComparisonAlgorithm(algorithm) {
+async function selectComparisonAlgorithm(algorithm) {
   const metric = state.comparisonMetrics.find(
     (item) => item.algorithm === algorithm,
   );
@@ -1429,7 +1495,37 @@ function selectComparisonAlgorithm(algorithm) {
     row.classList.toggle("is-selected", selected);
     row.setAttribute("aria-selected", String(selected));
   });
-  renderComparisonSelection(metric);
+
+  const requestId = ++state.comparisonSelectionRequest;
+  let selectedMetric = metric;
+  let visitedOrder = getComparisonVisitedOrder(selectedMetric);
+  let path = getComparisonPath(selectedMetric);
+  renderComparisonSelection(selectedMetric, visitedOrder.length);
+
+  if ((visitedOrder.length === 0 || path.length < 2) && state.comparisonContext.start && state.comparisonContext.end) {
+    try {
+      const response = await fetch(`${API_BASE}/api/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start: state.comparisonContext.start,
+          end: state.comparisonContext.end,
+          algorithm,
+          cost_profile: state.comparisonContext.profile,
+        }),
+      });
+      if (response.ok) {
+        selectedMetric = { ...metric, ...(await response.json()) };
+        visitedOrder = getComparisonVisitedOrder(selectedMetric);
+        path = getComparisonPath(selectedMetric);
+      }
+    } catch (error) {
+      console.warn("Could not load the selected algorithm detail:", error);
+    }
+  }
+
+  if (requestId !== state.comparisonSelectionRequest) return;
+  renderComparisonSelection(selectedMetric, visitedOrder.length);
 
   clearTimeout(state.animationTimer);
   state.animationTimer = null;
@@ -1437,17 +1533,17 @@ function selectComparisonAlgorithm(algorithm) {
   state.isPaused = false;
   resetMapVisualization();
 
-  for (const nodeId of metric.visited_order || []) {
+  for (const nodeId of visitedOrder) {
     updateMarkerColor(nodeId, "visited");
   }
-  if (metric.path?.length > 1) {
-    highlightPath(metric.path);
+  if (path.length > 1) {
+    highlightPath(path);
   }
 
-  state.routeReview.path = (metric.path || []).map(String);
-  state.routeReview.steps = buildRouteReview(state.routeReview.path);
+  state.routeReview.path = path;
+  state.routeReview.steps = buildRouteReview(path);
   state.routeReview.activeIndex = -1;
-  renderRouteReview(state.routeReview.path);
+  renderRouteReview(path);
 }
 function renderComparisonView(metricKey = state.comparisonMetric) {
   const config = COMPARE_METRIC_CONFIG[metricKey] || COMPARE_METRIC_CONFIG.total_cost;
@@ -1502,8 +1598,13 @@ function renderMetrics(metrics, profile, context = {}) {
   const body = document.getElementById("metrics-table-body");
   state.comparisonMetrics = Array.isArray(metrics) ? metrics : [];
   state.selectedComparisonAlgorithm = "";
+  state.comparisonContext = {
+    start: String(context.start || ""),
+    end: String(context.end || ""),
+    profile: String(profile || "balanced"),
+  };
 
-  document.getElementById("metrics-profile").textContent = String(profile || "").toUpperCase();
+  document.getElementById("metrics-profile").textContent = (String(profile || "").toUpperCase() + " / " + String(context.scenario || state.trafficScenario).toUpperCase());
   const startNode = state.nodesData.find((node) => String(node.id) === String(context.start || ""));
   const endNode = state.nodesData.find((node) => String(node.id) === String(context.end || ""));
   document.getElementById("compare-context").textContent =
@@ -1577,6 +1678,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
     payload = {
       waypoints,
       cost_profile: costProfile,
+      scenario: state.trafficScenario,
       order_mode: state.tspMode,
     };
   } else {
@@ -1590,6 +1692,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
       end: end,
       algorithm: algorithm,
       cost_profile: costProfile,
+      scenario: state.trafficScenario,
     };
   }
 
@@ -1611,7 +1714,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
 
     const data = await response.json();
     if (requestGeneration !== state.searchGeneration) return;
-    startAnimation(data.animation_log, data.path, data.stats, data.explanation);
+    startAnimation(data.animation_log, data.path, data.stats, data.explanation, data.explanation_details, data.visiting_order);
   } catch (e) {
     console.error("Search Error:", e);
     alert(`Error: ${e.message}`);
@@ -1630,7 +1733,7 @@ document.getElementById("btn-start").addEventListener("click", async () => {
 
 
  */
-function showResults(path, stats = {}, explanation) {
+function showResults(path, stats = {}, explanation, explanationDetails = {}, visitingOrder = []) {
   const panel = document.getElementById("results-panel");
   const metricsPanel = document.getElementById("metrics-panel");
   const routeReview = document.getElementById("route-review-panel");
@@ -1655,9 +1758,59 @@ function showResults(path, stats = {}, explanation) {
   document.getElementById("stat-cost").innerText = stats.total_cost !== undefined ? stats.total_cost.toFixed(2) : "N/A";
   document.getElementById("stat-proc-time").innerText = stats.processing_time_ms !== undefined ? stats.processing_time_ms.toFixed(2) + " ms" : "N/A";
   document.getElementById("explanation-text").textContent = explanation || "Search completed.";
+  renderExplanationDetails(explanationDetails, visitingOrder);
   renderRouteReview(path || []);
 }
 
+/**
+ * Render structured route reasoning without injecting API-provided HTML.
+ * @param {Object} details - Explanation metadata from the API.
+ * @param {string[]} visitingOrder - Ordered TSP waypoint identifiers.
+ */
+function renderExplanationDetails(details = {}, visitingOrder = []) {
+  const container = document.getElementById("explanation-details");
+  if (!container) return;
+  container.replaceChildren();
+  const order = details.visiting_order_names || visitingOrder;
+  const segments = details.high_impact_segments || [];
+  const rows = [];
+  if (details.criterion) rows.push(["Criterion", details.criterion]);
+  if (details.guarantee) rows.push(["Guarantee", details.guarantee]);
+  if (details.status) rows.push(["Status", details.status]);
+  if (details.order_preserved) rows.push(["Order", "Requested waypoint order preserved."]);
+  if (details.segments_optimized) rows.push(["Segments", "Each reachable segment optimized with A*."]);
+  if (details.alternative) {
+    rows.push([
+      "Alternative",
+      `${details.alternative.algorithm} / cost ${Number(details.alternative.total_cost).toFixed(4)}`,
+    ]);
+  }
+  if (order.length > 0) rows.push(["Visiting order", order.join(" -> ")]);
+  if (segments.length > 0) {
+    rows.push([
+      "High-impact segments",
+      segments.map((segment) => `${segment.source} -> ${segment.target} (C${segment.congestion}, R${segment.risk})`).join("; "),
+    ]);
+  }
+  if (rows.length === 0) {
+    container.hidden = true;
+    return;
+  }
+  const title = document.createElement("strong");
+  title.textContent = "Route reasoning";
+  container.appendChild(title);
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    const key = document.createElement("span");
+    key.className = "explanation-details__label";
+    key.textContent = `${label}:`;
+    const content = document.createElement("span");
+    content.textContent = value;
+    row.append(key, content);
+    container.appendChild(row);
+  });
+  container.hidden = false;
+}
 /**
  * Show or hide the loading overlay.
  * @param {boolean} show - Whether the overlay is visible
@@ -1682,6 +1835,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!response.ok) throw new Error("Could not load the map configuration.");
     const config = await response.json();
     GOONG_MAP_KEY = config.map_tiles_key || "";
+    AVAILABLE_TRAFFIC_SCENARIOS = Array.isArray(config.traffic_scenarios)
+      ? config.traffic_scenarios
+      : [];
     initMap();
   } catch (error) {
     console.error("Config Error:", error);

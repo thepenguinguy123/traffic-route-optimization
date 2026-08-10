@@ -5,6 +5,8 @@ Traffic Route Optimization minh họa cách mô hình hóa mạng lưới giao t
 ## Thành phần
 
 - Flask cung cấp API graph, search, metrics và TSP.
+- Animation log của graph search phản ánh frontier snapshot trước khi đánh dấu node hiện tại là visited.
+- Route explanation service tạo explanation có cấu trúc cho search, metrics và multi-location để UI giải thích tiêu chí, guarantee, route thay thế và visiting order.
 - Graph runtime đọc dataset sạch trong `backend/data/` qua repository.
 - Frontend thuần HTML/CSS/JavaScript hiển thị bản đồ, marker, edge, animation và kết quả.
 - Collector Goong Places chạy độc lập, hỗ trợ retry, checkpoint theo chunk, resume và bộ từ khóa địa phương hóa trong `backend/data/food_search_terms.json`.
@@ -28,6 +30,7 @@ API key chỉ nằm trong `.env`. `GOONG_REST_API_KEY` chỉ dùng ở backend; 
 ## Bất biến kỹ thuật
 
 - Edge là có hướng; thuật toán chỉ duyệt neighbor hợp lệ và không tự suy diễn cạnh ngược cho đường một chiều.
+- Edge traffic baseline dùng congestion/risk deterministic theo road type; các scenario `normal`, `rush_hour` và `rainy_day` được khai báo riêng trong `backend/data/traffic_scenarios.json` để tái lập thí nghiệm.
 - UCS, A* và từng segment TSP dùng cùng `CostCalculator` và cost profile runtime.
 - `risk_factor` số thực được chuẩn hóa trực tiếp; dữ liệu cũ thiếu trường này mới fallback sang `risk_level`.
 - Queue TSP không chứa Start. Mode `auto` dùng Nearest Neighbor trên ma trận chi phí A*; mode `ordered` giữ nguyên thứ tự queue và tối ưu từng segment bằng A*.
@@ -36,3 +39,6 @@ API key chỉ nằm trong `.env`. `GOONG_REST_API_KEY` chỉ dùng ở backend; 
 ## Kiểm tra
 
 Chạy các lệnh trong README trước khi push. Với frontend, mở DevTools để kiểm tra không có lỗi Console, request graph trả về `200` và các thao tác search/compare không để lại panel trắng.
+- Runtime hỗ trợ scenario `normal`, `rush_hour` và `rainy_day`; graph variant được cache và dữ liệu baseline không bị mutate.
+
+- Frontend có scenario selector; thay đổi scenario sẽ clear kết quả và gửi scenario vào Search, Metrics và TSP.

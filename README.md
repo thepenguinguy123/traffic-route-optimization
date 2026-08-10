@@ -6,6 +6,7 @@
 
 - `backend/`: Flask API, graph core, các thuật toán BFS, DFS, UCS, A*, Greedy Best-First, IDA* và TSP.
 - `backend/data/`: dữ liệu node/edge và bộ từ khóa địa phương hóa; graph loader đọc trực tiếp `nodes_clean.js` và `edges_clean.js`.
+- `backend/data/traffic_scenarios.json`: cấu hình ba traffic scenario dùng cho bước tích hợp scenario runtime.
 - `backend/app/repositories/`: lớp đọc và chuẩn hóa dataset.
 - `backend/app/services/`: route search, metrics, TSP và collector Goong Places.
 - `frontend/`: HTML/CSS/JavaScript thuần, Goong GL JS, không dùng framework build.
@@ -52,10 +53,11 @@ Mở `http://localhost:8080`. Backend mặc định chạy ở `http://localhost
 ## API chính
 
 - `GET /api/graph`, `/api/nodes`, `/api/algorithms`, `/api/cost-profiles`.
-- `GET /api/config`, `/api/food-places`.
+- `GET /api/config`, `/api/food-places`, `/api/traffic-scenarios`.
 - `POST /api/search` tìm tuyến hai điểm.
 - `POST /api/tsp` tìm tuyến nhiều waypoint.
 - `POST /api/metrics` so sánh các thuật toán.
+- Search, metrics và TSP trả về `explanation_details`; frontend hiển thị tiêu chí, bảo đảm thuật toán, visiting order, alternative và các edge có congestion/risk cao.
 
 ## Collector dữ liệu Goong
 
@@ -72,14 +74,17 @@ Kết quả checkpoint nằm trong `backend/data/food_places.json` và bị lo�
 (10.78495, 106.68911)
 (10.77959, 106.69498)
 (10.78659, 106.70156)
+
 ```
+
+Edge dataset hiện dùng traffic baseline hybrid deterministic: congestion và risk được phân bố theo `road_type` để phục vụ đánh giá thuật toán. Ba scenario `normal`, `rush_hour` và `rainy_day` được khai báo trong `backend/data/traffic_scenarios.json`; Các endpoint search, metrics và TSP nhận thêm trường `scenario`; mặc định là `normal`.
 
 ## Hành vi giao diện
 
 - Start và End được đánh dấu bằng marker nhiều vòng với nhãn `S` và `E`.
 - Waypoint TSP nằm trong queue riêng, không bao gồm Start; số thứ tự được hiển thị phía trên node.
-- Sau khi thay đổi thuật toán, Start/End, waypoint, queue, mode hoặc cost profile, kết quả cũ được xóa.
-- Route Review mở ở Right Panel. Compare Algorithms mở ở Bottom Panel; khi một panel mở, panel còn lại tự động thu gọn.
+- Sau khi thay đổi thuật toán, Start/End, waypoint, queue, mode hoặc cost profile, kết quả cũ được xóa. Thay đổi traffic scenario cũng xóa kết quả và áp dụng scenario cho lần chạy kế tiếp.
+- Route Review mở ở Right Panel. Animation graph search dùng frontier snapshot và trạng thái visited riêng. Compare Algorithms mở ở Bottom Panel; khi một panel mở, panel còn lại tự động thu gọn.
 - Right Panel có thể kéo rộng/hẹp; Bottom Panel có thể kéo thay đổi chiều cao và cuộn nội dung.
 - Mỗi step trong Route Review tách tuyến `FROM`/`TO`, khoảng cách, thời gian, congestion, risk và hướng cạnh thành các trường riêng.
 - Có thể click hoặc chọn bằng bàn phím một row trong bảng compare để xem node đã duyệt và final route của thuật toán đó trên map.

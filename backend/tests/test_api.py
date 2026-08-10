@@ -64,7 +64,12 @@ def test_graph_core_search_uses_new_profile_contract():
     assert payload["found"] is True
     assert len(payload["path"]) >= 2
     assert payload["animation_log"]
+    assert any(item["status"] == "frontier" for item in payload["animation_log"])
+    assert any(item["status"] == "visited" for item in payload["animation_log"])
     assert payload["trace"]
+    assert payload["explanation_details"]["status"] == "found"
+    assert payload["explanation_details"]["criterion"]
+    assert "guarantee" in payload["explanation_details"]
 
 
 def test_multi_location_route_uses_nearest_neighbor_service():
@@ -84,6 +89,8 @@ def test_multi_location_route_uses_nearest_neighbor_service():
     assert payload["algorithm"] == "nearest_neighbor"
     assert payload["visiting_order"][0] == "1"
     assert len(payload["path"]) >= 2
+    assert payload["explanation_details"]["visiting_order_names"]
+    assert payload["is_optimal"] is False
 
 
 def test_metrics_endpoint_compares_selected_algorithms():
@@ -111,3 +118,69 @@ def test_metrics_endpoint_compares_selected_algorithms():
         "path" in item and "visited_order" in item and "animation_log" in item
         for item in payload["metrics"]
     )
+
+    assert all(
+        item["explanation_details"]["status"] == "found" for item in payload["metrics"]
+    )
+
+
+def test_traffic_scenarios_are_runtime_selectable():
+    client = app.test_client()
+
+    scenarios = client.get("/api/traffic-scenarios")
+    normal = client.post(
+        "/api/search",
+        json={
+            "start": "1",
+            "end": "10",
+            "algorithm": "ucs",
+            "cost_profile": "balanced",
+            "scenario": "normal",
+        },
+    )
+    rainy = client.post(
+        "/api/search",
+        json={
+            "start": "1",
+            "end": "10",
+            "algorithm": "ucs",
+            "cost_profile": "balanced",
+            "scenario": "rainy_day",
+        },
+    )
+    invalid = client.post(
+        "/api/search",
+        json={
+            "start": "1",
+            "end": "10",
+            "algorithm": "ucs",
+            "scenario": "unknown",
+        },
+    )
+
+    assert scenarios.status_code == 200
+    assert {item["id"] for item in scenarios.get_json()} == {
+        "normal",
+        "rush_hour",
+        "rainy_day",
+    }
+    assert normal.status_code == 200
+    assert rainy.status_code == 200
+    assert normal.get_json()["scenario"] == "normal"
+    assert rainy.get_json()["scenario"] == "rainy_day"
+    assert invalid.status_code == 400
+    metrics = client.post(
+        "/api/metrics",
+        json={
+            "start": "1",
+            "end": "10",
+            "algorithms": ["ucs"],
+            "scenario": "rush_hour",
+        },
+    )
+    assert metrics.get_json()["scenario"] == "rush_hour"
+    assert (
+        normal.get_json()["stats"]["total_cost"]
+        != rainy.get_json()["stats"]["total_cost"]
+    )
+    assert invalid.status_code == 400
