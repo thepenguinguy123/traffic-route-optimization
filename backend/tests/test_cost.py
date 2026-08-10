@@ -53,4 +53,4 @@ def test_route_cost():
         COST_PROFILES["balanced"],
     )
 
-    assert route_cost == pytest.approx(0.60)
+    assert route_cost == pytest.approx(1.50)

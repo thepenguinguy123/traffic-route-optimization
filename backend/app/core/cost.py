@@ -11,8 +11,8 @@ CONGESTION_MULTIPLIERS = {
     5: 2.20,
 }
 
-MAX_DISTANCE_KM = 3.0
-MAX_TIME_MIN = 15.0
+MAX_DISTANCE_KM = 0.25
+MAX_TIME_MIN = 0.60
 
 
 class CostCalculator:
