@@ -1,4 +1,4 @@
-"""Greedy Best-First Search trên traffic graph core."""
+"""Greedy best-first graph search."""
 
 from heapq import heappop, heappush
 from itertools import count
@@ -16,7 +16,7 @@ def search(
     goal: str,
     profile: CostProfile,
 ) -> SearchResult:
-    """Tìm tuyến bằng cách ưu tiên node có heuristic gần đích nhất."""
+    """Search by expanding the node with the smallest distance heuristic."""
 
     started_at = perf_counter()
     graph.get_node(start)

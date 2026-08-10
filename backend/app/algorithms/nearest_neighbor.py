@@ -1,4 +1,4 @@
-"""Thuật toán Nearest Neighbor cho bài toán nhiều điểm."""
+"""Nearest-neighbor heuristic for multi-location routing."""
 
 from time import perf_counter
 from typing import Any, Hashable
@@ -10,7 +10,7 @@ def nearest_neighbor_tsp(
     cost_matrix: dict[Hashable, dict[Hashable, float]],
     return_to_start: bool = False,
 ) -> dict[str, Any]:
-    """Chọn điểm chưa đi có chi phí thấp nhất ở mỗi bước."""
+    """Build a deterministic route by repeatedly choosing the cheapest stop."""
 
     started_at = perf_counter()
     unvisited = set(waypoints)

@@ -1,4 +1,4 @@
-"""Thu thập dữ liệu quán ăn trong một hình chữ nhật bằng Goong Places API."""
+"""Goong Places collector with chunking, retries, polygon filtering, and checkpoints."""
 
 import argparse
 import json
@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from urllib.parse import urlencode
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
@@ -19,41 +19,58 @@ from ..repositories.graph_data import NODES
 
 GOONG_PLACES_URL = "https://rsapi.goong.io/Place/AutoComplete"
 GOONG_DETAILS_URL = "https://rsapi.goong.io/Place/Detail"
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "data" / "food_places.json"
-SEARCH_TERMS = (
-    "quán ăn",
-    "nhà hàng",
-    "cà phê",
-    "coffee",
-    "juice",
-    "nước ép",
-    "trà",
-    "trà sữa",
-    "bánh",
-    "tiệm bánh",
-    "bakery",
-    "dessert",
-    "food",
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DEFAULT_OUTPUT = DATA_DIR / "food_places.json"
+SEARCH_TERMS_PATH = DATA_DIR / "food_search_terms.json"
+DEFAULT_SEARCH_TERMS = (
     "restaurant",
+    "food",
+    "coffee",
+    "cafe",
+    "juice",
+    "tea",
+    "milk tea",
+    "bakery",
+    "cake",
+    "dessert",
 )
 
 
+def load_search_terms(path: Path = SEARCH_TERMS_PATH) -> Tuple[str, ...]:
+    """Load and deduplicate localized search terms from a UTF-8 JSON array."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return DEFAULT_SEARCH_TERMS
+    if not isinstance(payload, list):
+        return DEFAULT_SEARCH_TERMS
+    terms = tuple(
+        dict.fromkeys(
+            term.strip() for term in payload if isinstance(term, str) and term.strip()
+        )
+    )
+    return terms or DEFAULT_SEARCH_TERMS
+
+
+SEARCH_TERMS = load_search_terms()
+
+
 def parse_bounds(value: str) -> Tuple[float, float, float, float]:
-    """Phân tích bounds theo định dạng west,south,east,north."""
+    """Parse west,south,east,north into validated rectangular bounds."""
     try:
         west, south, east, north = (float(part.strip()) for part in value.split(","))
     except ValueError as error:
         raise argparse.ArgumentTypeError(
-            "Bounds phải có dạng west,south,east,north."
+            "Bounds must use west,south,east,north format."
         ) from error
 
     if west >= east or south >= north:
-        raise argparse.ArgumentTypeError("Bounds không tạo thành hình chữ nhật hợp lệ.")
+        raise argparse.ArgumentTypeError("Bounds must define a valid rectangle.")
     return west, south, east, north
 
 
 def graph_bounds(padding: float) -> Tuple[float, float, float, float]:
-    """Tạo bounds từ danh sách node hiện tại và thêm khoảng đệm theo độ."""
+    """Return graph bounds expanded by coordinate padding."""
     longitudes = [node["lng"] for node in NODES.values()]
     latitudes = [node["lat"] for node in NODES.values()]
     return (
@@ -69,7 +86,7 @@ def grid_points(
     step: float,
     polygon: Tuple[Tuple[float, float], ...] = FOOD_AREA_POLYGON,
 ) -> Iterable[Tuple[float, float]]:
-    """Sinh các tâm tìm kiếm nằm trong tứ giác cần quét."""
+    """Yield search centers that fall inside the configured polygon."""
     west, south, east, north = bounds
     longitude = west
     while longitude <= east:
@@ -82,7 +99,7 @@ def grid_points(
 
 
 def request_json(url: str, params: Dict[str, Any], timeout: int = 20) -> Dict[str, Any]:
-    """Gọi Goong REST API và trả về JSON, có thông báo lỗi rõ ràng."""
+    """Call a Goong endpoint with retry handling for throttling and network errors."""
     query = urlencode(params)
     request = Request(f"{url}?{query}", headers={"User-Agent": "Lab01-CSAI/1.0"})
     payload: Optional[Dict[str, Any]] = None
@@ -96,13 +113,24 @@ def request_json(url: str, params: Dict[str, Any], timeout: int = 20) -> Dict[st
                 raise
             retry_after = error.headers.get("Retry-After")
             wait_seconds = float(retry_after) if retry_after else 2**attempt
-            print(f"Goong giới hạn request (429), chờ {wait_seconds:g}s...")
+            print(f"Goong rate limit reached (429); waiting {wait_seconds:g}s...")
+            time.sleep(wait_seconds)
+        except URLError as error:
+            if attempt == 4:
+                raise
+            wait_seconds = 2**attempt
+            print(
+                f"Network error while calling Goong ({error.reason}); "
+                f"retrying in {wait_seconds:g}s..."
+            )
             time.sleep(wait_seconds)
 
     if payload is None:
-        raise RuntimeError("Goong API không trả về payload sau các lần thử lại.")
+        raise RuntimeError("Goong API returned no payload after all retries.")
     if payload.get("status") not in (None, "OK"):
-        raise RuntimeError(f"Goong API trả về status={payload.get('status')}: {payload}")
+        raise RuntimeError(
+            f"Goong API returned status={payload.get('status')}: {payload}"
+        )
     return payload
 
 
@@ -110,7 +138,7 @@ def in_search_area(
     location: Dict[str, Any],
     polygon: Tuple[Tuple[float, float], ...] = FOOD_AREA_POLYGON,
 ) -> bool:
-    """Kiểm tra tọa độ có nằm trong đúng tứ giác hay không."""
+    """Return whether a Goong location lies inside the search polygon."""
     return point_in_polygon(
         float(location["lat"]),
         float(location["lng"]),
@@ -122,7 +150,7 @@ def split_bounds(
     bounds: Tuple[float, float, float, float],
     chunks: int,
 ) -> List[Tuple[float, float, float, float]]:
-    """Chia bounds thành lưới đều; 8 chunks sẽ thành lưới 2x4."""
+    """Split bounds into an evenly sized chunk grid."""
     rows = max(1, int(chunks**0.5))
     while rows > 1 and chunks % rows != 0:
         rows -= 1
@@ -153,7 +181,7 @@ def write_checkpoint(
     chunks: int,
     complete: bool,
 ) -> None:
-    """Ghi checkpoint nguyên tử để không mất dữ liệu khi request bị ngắt."""
+    """Atomically persist collector progress after a chunk completes."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "polygon": FOOD_AREA_POLYGON,
@@ -186,7 +214,7 @@ def collect_places(
     output_path: Optional[Path] = None,
     resume: bool = True,
 ) -> List[Dict[str, Any]]:
-    """Tìm tối đa max_per_chunk địa điểm trong mỗi ô và lọc theo polygon."""
+    """Collect, filter, deduplicate, and checkpoint places by search chunk."""
     places: List[Dict[str, Any]] = []
     used_place_ids: Set[str] = set()
     checked_place_ids: Set[str] = set()
@@ -196,13 +224,17 @@ def collect_places(
     if resume and output_path and output_path.exists():
         try:
             previous = json.loads(output_path.read_text(encoding="utf-8"))
-            if previous.get("chunks") == chunks and previous.get("bounds") == list(bounds):
+            if previous.get("chunks") == chunks and previous.get("bounds") == list(
+                bounds
+            ):
                 places = previous.get("places", [])
                 used_place_ids = {place["id"] for place in places}
                 completed_chunks = set(previous.get("completed_chunks", []))
-                print(f"Tiếp tục từ checkpoint: đã hoàn tất chunk {sorted(completed_chunks)}.")
+                print(
+                    f"Resuming from checkpoint; completed chunks: {sorted(completed_chunks)}."
+                )
         except (OSError, json.JSONDecodeError, KeyError):
-            print("Checkpoint không hợp lệ, bắt đầu lại từ chunk đầu tiên.")
+            print("Checkpoint is invalid; restarting from the first chunk.")
 
     for index, chunk in enumerate(area_chunks, start=1):
         if index in completed_chunks:
@@ -228,8 +260,8 @@ def collect_places(
                     predictions[place_id] = prediction
             time.sleep(delay)
         print(
-            f"Đã quét chunk {index}/{len(area_chunks)}; "
-            f"tìm thấy {len(predictions)} ID."
+            f"Scanned chunk {index}/{len(area_chunks)}; "
+            f"found {len(predictions)} IDs."
         )
 
         detail_count = 0
@@ -271,8 +303,8 @@ def collect_places(
                 detail_count += 1
             time.sleep(delay)
         print(
-            f"Chunk {index}: giữ {detail_count}/{max_per_chunk} quán, "
-            f"đã kiểm tra {detail_attempts}/{max_detail_per_chunk} ID."
+            f"Chunk {index}: retained {detail_count}/{max_per_chunk} places; "
+            f"checked {detail_attempts}/{max_detail_per_chunk} IDs."
         )
         completed_chunks.add(index)
         if output_path:
@@ -290,72 +322,76 @@ def collect_places(
 
 
 def main() -> None:
-    """Chạy chương trình thu thập và ghi dữ liệu ra JSON."""
+    """Parse command-line options and run the Goong Places collector."""
     reconfigure_stdout = getattr(sys.stdout, "reconfigure", None)
     if callable(reconfigure_stdout):
         reconfigure_stdout(encoding="utf-8")
-    # Ưu tiên .env ở thư mục gốc; hỗ trợ thêm backend/.env để chạy thuận tiện.
+
     project_env = Path(__file__).resolve().parents[3] / ".env"
     backend_env = Path(__file__).resolve().parents[2] / ".env"
     load_dotenv(backend_env)
     load_dotenv(project_env, override=True)
     parser = argparse.ArgumentParser(
-        description="Thu thập quán ăn trong bounds bằng Goong Places API."
+        description="Collect food places within bounds using the Goong Places API."
     )
     parser.add_argument(
         "--bounds",
         type=parse_bounds,
-        help="west,south,east,north; mặc định lấy theo node list.",
+        help="west,south,east,north; defaults to the configured polygon bounds.",
     )
     parser.add_argument(
         "--padding",
         type=float,
         default=0.004,
-        help="Khoảng đệm theo độ khi tự tính bounds (mặc định: 0.004).",
+        help="Coordinate padding when deriving bounds (default: 0.004).",
     )
     parser.add_argument(
         "--step",
         type=float,
         default=0.008,
-        help="Khoảng cách điểm lưới theo độ (mặc định: 0.008).",
+        help="Grid spacing in degrees (default: 0.008).",
     )
     parser.add_argument(
         "--radius",
         type=float,
         default=1.0,
-        help="Bán kính mỗi truy vấn, đơn vị km (mặc định: 1.0).",
+        help="Search radius in kilometers (default: 1.0).",
     )
-    parser.add_argument("--limit", type=int, default=20, help="Số kết quả mỗi truy vấn.")
-    parser.add_argument("--delay", type=float, default=0.15, help="Độ trễ giữa các request.")
+    parser.add_argument(
+        "--limit", type=int, default=20, help="Results requested per query."
+    )
+    parser.add_argument(
+        "--delay", type=float, default=0.15, help="Delay between requests."
+    )
     parser.add_argument(
         "--chunks",
         type=int,
         default=8,
-        help="Số ô chia vùng tìm kiếm (mặc định: 8 = lưới 2x4).",
+        help="Number of search chunks (default: 8, arranged as a 2x4 grid).",
     )
     parser.add_argument(
         "--max-per-chunk",
         type=int,
         default=10,
-        help="Số quán tối đa lấy từ mỗi ô (mặc định: 10).",
+        help="Maximum places retained per chunk (default: 10).",
     )
     parser.add_argument(
         "--max-detail-per-chunk",
         type=int,
         default=40,
-        help="Số ID tối đa gọi Place Detail trong mỗi ô (mặc định: 40).",
+        help="Maximum Place Detail requests per chunk (default: 40).",
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--no-resume",
         action="store_true",
-        help="Bỏ qua checkpoint cũ và quét lại từ đầu.",
+        help="Ignore the checkpoint and scan from the beginning.",
     )
     args = parser.parse_args()
 
     api_key = os.getenv("GOONG_REST_API_KEY")
     if not api_key:
-        raise SystemExit("Thiếu GOONG_REST_API_KEY trong file .env.")
+        raise SystemExit("GOONG_REST_API_KEY is missing from the .env file.")
     if (
         args.step <= 0
         or args.radius <= 0
@@ -364,7 +400,7 @@ def main() -> None:
         or args.max_per_chunk <= 0
         or args.max_detail_per_chunk <= 0
     ):
-        raise SystemExit("Các thông số số lượng, step và radius phải lớn hơn 0.")
+        raise SystemExit("Count, step, and radius arguments must be greater than zero.")
 
     bounds = args.bounds or polygon_bounds()
     places = collect_places(
@@ -381,7 +417,7 @@ def main() -> None:
         args.output,
         not args.no_resume,
     )
-    print(f"Đã ghi {len(places)} quán ăn vào {args.output}")
+    print(f"Wrote {len(places)} food places to {args.output}")
 
 
 if __name__ == "__main__":

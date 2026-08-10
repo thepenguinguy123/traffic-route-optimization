@@ -1,87 +1,44 @@
 # Bối cảnh dự án
 
-## Mục tiêu
+Traffic Route Optimization minh họa cách mô hình hóa mạng lưới giao thông thành đồ thị có trọng số và trực quan hóa quá trình tìm đường trên Goong Maps.
 
-Traffic Route Optimization minh họa cách mô hình hóa mạng lưới giao thông thành
-đồ thị và so sánh các cách tìm tuyến. Người dùng chọn node đầu/cuối, tiêu chí
-chi phí và quan sát tuyến được hoạt ảnh trên bản đồ Goong.
+## Thành phần
 
-## Kiến trúc hiện tại
+- Flask cung cấp API graph, search, metrics và TSP.
+- Animation log của graph search phản ánh frontier snapshot trước khi đánh dấu node hiện tại là visited.
+- Route explanation service tạo explanation có cấu trúc cho search, metrics và multi-location để UI giải thích tiêu chí, guarantee, route thay thế và visiting order.
+- Graph runtime đọc dataset sạch trong `backend/data/` qua repository.
+- Frontend thuần HTML/CSS/JavaScript hiển thị bản đồ, marker, edge, animation và kết quả.
+- Collector Goong Places chạy độc lập, hỗ trợ retry, checkpoint theo chunk, resume và bộ từ khóa địa phương hóa trong `backend/data/food_search_terms.json`.
 
-- `backend/app/api/main.py`: Flask app, CORS và các HTTP endpoint.
-- `backend/app/repositories/clean_dataset_repository.py`: loader đọc trực tiếp
-  `backend/data/nodes_clean.js` và `backend/data/edges_clean.js`.
-- `backend/app/repositories/graph_data.py`: adapter tương thích cho legacy,
-  nhưng dữ liệu runtime vẫn là 98 node và 176 cạnh sạch.
-- `backend/app/algorithms/`: BFS, DFS, UCS, A*, Greedy Best-First và
-  IDA* dùng registry chung; Nearest Neighbor xử lý nhiều waypoint.
-- `backend/app/core/`: mô hình đồ thị, chi phí và vùng địa điểm.
-- `backend/app/services/multi_location_service.py`: dựng ma trận cost/path bằng
-  A* và tối ưu thứ tự waypoint bằng Nearest Neighbor.
-- `backend/app/services/metrics_service.py`: chạy và tổng hợp metrics của nhiều
-  thuật toán trên cùng graph/profile.
-- `backend/app/services/food_places.py`: collector Goong Places API có retry,
-  giới hạn chunk và checkpoint.
-- `frontend/app.js`: khởi tạo Goong GL JS, tải graph đầy đủ và hoạt ảnh.
+## Luồng tìm kiếm
 
-API đã dùng `TrafficGraph` làm graph runtime cho BFS, DFS, UCS, A*,
-Greedy Best-First và IDA*.
-Response được chuyển về format animation cũ để frontend có thể hiển thị frontier,
-visited và tuyến cuối mà không cần hai hệ thống dữ liệu song song.
+1. Frontend tải graph và cấu hình map từ backend.
+2. Người dùng chọn thuật toán, cost profile, Start/End hoặc queue TSP.
+3. Backend chạy thuật toán và trả về path, animation log, thống kê và giải thích.
+4. Frontend animate node/edge, vẽ tuyến primary và hiển thị Route Review.
+5. Compare gọi `/api/metrics`, chuyển bảng so sánh vào Bottom Panel và thu gọn Right Panel.
 
-## Luồng chạy
+## Quy ước panel
 
-1. Backend nạp `.env` ở thư mục gốc (hoặc `backend/.env` để thuận tiện local).
-2. Frontend gọi `/api/config` để nhận duy nhất map tiles key.
-3. Frontend gọi `/api/algorithms`, `/api/cost-profiles`, `/api/nodes` và
-   `/api/graph` để dựng selection và bản đồ. Graph đã bao gồm cả food node.
-4. Khi tìm kiếm, frontend gọi `/api/search` hoặc `/api/tsp` và phát hoạt ảnh.
-   `/api/tsp` dùng pipeline A* + Nearest Neighbor cho nhiều điểm.
-5. Nút Compare Algorithms gọi `/api/metrics` để hiển thị bảng so sánh hiệu năng.
+Right Panel chỉ dùng cho kết quả tìm kiếm và Route Review. Bottom Panel chỉ dùng cho Compare Algorithms. Hai panel là hai drawer độc lập; mở một panel sẽ tự động thu gọn panel còn lại. Nút mũi tên cho phép mở lại panel đang thu gọn.
 
-## Dữ liệu graph và địa điểm
+## Dữ liệu và bảo mật
 
-Dataset chính gồm 98 node và 176 cạnh có hướng. Trong đó có 56 node giao lộ,
-3 node access và 39 node food. Các file nguồn có wrapper JavaScript `const ... = [...]`, vì vậy
-không được đọc bằng JSON loader thông thường. `clean_dataset_repository.py`
-parse phần array, chuẩn hóa ID thành string ở domain layer và giữ metadata gốc.
+API key chỉ nằm trong `.env`. `GOONG_REST_API_KEY` chỉ dùng ở backend; frontend chỉ nhận map tiles key qua `/api/config`. Không commit `.env`, checkpoint collector, virtualenv, cache hoặc file tạm.
 
-Các cạnh mới dùng `source/target`, `road_type`, `risk_factor` và có thể là một
-chiều. Graph core tôn trọng hướng cạnh; không tự sinh thêm cạnh ngược.
+## Bất biến kỹ thuật
 
-Vùng thu thập được định nghĩa bằng tứ giác trong `backend/app/core/food_area.py`.
-Collector lọc lại tọa độ từ Place Detail bằng phép kiểm tra điểm-trong-đa-giác,
-do đó dữ liệu collector runtime không giữ kết quả ngoài vùng. Dataset clean mới
-giữ đủ 39 food node và API đánh dấu `within_food_area` cho các node ngoài vùng.
-Kết quả runtime
-được lưu tại `backend/data/food_places.json`, bị Git bỏ qua để tránh đưa dữ liệu
-phụ thuộc API vào repository.
+- Edge là có hướng; thuật toán chỉ duyệt neighbor hợp lệ và không tự suy diễn cạnh ngược cho đường một chiều.
+- Edge traffic baseline dùng congestion/risk deterministic theo road type; các scenario `normal`, `rush_hour` và `rainy_day` được khai báo riêng trong `backend/data/traffic_scenarios.json` để tái lập thí nghiệm.
+- UCS, A* và từng segment TSP dùng cùng `CostCalculator` và cost profile runtime.
+- `risk_factor` số thực được chuẩn hóa trực tiếp; dữ liệu cũ thiếu trường này mới fallback sang `risk_level`.
+- Queue TSP không chứa Start. Mode `auto` dùng Nearest Neighbor trên ma trận chi phí A*; mode `ordered` giữ nguyên thứ tự queue và tối ưu từng segment bằng A*.
+- Source thực thi dùng tiếng Anh/ASCII; Unicode tiếng Việt chỉ nằm trong tài liệu và dữ liệu miền.
 
-Mặc định collector chia vùng thành 8 chunk (lưới 2x4), giữ tối đa 10 địa điểm
-mỗi chunk và kiểm tra tối đa 40 ID chi tiết mỗi chunk. Sau mỗi chunk, file JSON
-được ghi atomically để có thể tiếp tục sau lỗi mạng hoặc HTTP 429.
+## Kiểm tra
 
-## Selection và profile chi phí
+Chạy các lệnh trong README trước khi push. Với frontend, mở DevTools để kiểm tra không có lỗi Console, request graph trả về `200` và các thao tác search/compare không để lại panel trắng.
+- Runtime hỗ trợ scenario `normal`, `rush_hour` và `rainy_day`; graph variant được cache và dữ liệu baseline không bị mutate.
 
-Frontend không hardcode danh sách thuật toán. Các lựa chọn graph core gồm BFS,
-DFS, UCS, A*, Greedy Best-First và IDA*; TSP được hiển thị trong nhóm
-multi-stop. Cost profile
-gồm `balanced`, `shortest_distance`, `fastest_route` và `avoid_congestion`.
-
-## Bảo mật
-
-- `.env` không được commit.
-- REST API key chỉ tồn tại trong collector/backend.
-- Không log giá trị key và không hardcode key trong JavaScript.
-- Map key nên được giới hạn domain; REST key nên được giới hạn theo IP/quota trên
-  Goong khi môi trường triển khai hỗ trợ.
-- Dữ liệu Places cần được xem là dữ liệu cache có thể thay đổi, không phải nguồn
-  dữ liệu chính thức lâu dài.
-
-## Kiểm tra tối thiểu
-
-```powershell
-python -m py_compile backend\main.py backend\app\api\main.py backend\app\services\food_places.py
-node --check frontend\app.js
-python -m pytest backend\tests -q
-```
+- Frontend có scenario selector; thay đổi scenario sẽ clear kết quả và gửi scenario vào Search, Metrics và TSP.

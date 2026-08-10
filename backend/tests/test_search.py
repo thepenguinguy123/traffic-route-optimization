@@ -130,10 +130,10 @@ def test_cost_search_algorithms_choose_lower_cost_over_fewer_hops():
             )
         )
 
-    add_edge("A", "D", 10.0)
-    add_edge("A", "B", 1.0)
-    add_edge("B", "C", 1.0)
-    add_edge("C", "D", 1.0)
+    add_edge("A", "D", 0.30)
+    add_edge("A", "B", 0.05)
+    add_edge("B", "C", 0.05)
+    add_edge("C", "D", 0.05)
 
     expected_path = ["A", "B", "C", "D"]
     profile = COST_PROFILES["shortest_distance"]

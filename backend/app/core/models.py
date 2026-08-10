@@ -68,7 +68,7 @@ class RoadEdge:
     risk_level: int
     restriction: str
     is_closed: bool = False
-    risk_factor: float = 1.0
+    risk_factor: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -82,7 +82,11 @@ class RoadEdge:
             raise InvalidEdgeError("road_type is not supported")
         if not 0 <= self.risk_level <= 5:
             raise InvalidEdgeError("risk_level must be between 0 and 5")
-        if self.risk_factor < 0:
+        risk_factor = self.risk_factor
+        if risk_factor is None:
+            risk_factor = float(self.risk_level)
+            object.__setattr__(self, "risk_factor", risk_factor)
+        if risk_factor < 0:
             raise InvalidEdgeError("risk_factor must be non-negative")
         if self.restriction not in _VALID_RESTRICTIONS:
             raise InvalidEdgeError("restriction is not supported")

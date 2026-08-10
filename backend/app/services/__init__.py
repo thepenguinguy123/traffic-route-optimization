@@ -1,1 +1,1 @@
-"""Các service tích hợp bên ngoài."""
+"""Application services for search, metrics, and place collection."""

@@ -1,4 +1,4 @@
-"""Điều phối tìm tuyến qua nhiều địa điểm trên graph core."""
+"""Route planning across multiple graph locations."""
 
 from time import perf_counter
 from typing import Any, Callable
@@ -13,13 +13,13 @@ SearchFunction = Callable[..., Any]
 
 
 class MultiLocationService:
-    """Dựng ma trận chi phí rồi sắp xếp waypoint bằng Nearest Neighbor."""
+    """Plan routes that visit multiple graph locations."""
 
     def __init__(self, search_fn: SearchFunction | None = None) -> None:
         self.search_fn = search_fn or astar_search
 
     def set_search_function(self, search_fn: SearchFunction) -> None:
-        """Thay thuật toán tìm từng chặng, mặc định là A*."""
+        """Replace the algorithm used to solve each route segment."""
 
         self.search_fn = search_fn
 
@@ -30,7 +30,7 @@ class MultiLocationService:
         profile: CostProfile | str = "balanced",
         search_fn: SearchFunction | None = None,
     ) -> tuple[dict, dict, dict, dict]:
-        """Tính ma trận cost/path/distance/time cho các cặp waypoint."""
+        """Build pairwise route, cost, distance, and duration matrices."""
 
         selected_profile = _resolve_profile(profile)
         search = search_fn or self.search_fn
@@ -63,15 +63,23 @@ class MultiLocationService:
         graph: TrafficGraph,
         profile: CostProfile | str = "balanced",
         return_to_start: bool = False,
+        order_mode: str = "auto",
         search_fn: SearchFunction | None = None,
     ) -> dict[str, Any]:
-        """Tối ưu thứ tự waypoint và ghép các đoạn đường chi tiết."""
+        """Build an automatic or explicitly ordered multi-stop route."""
 
         started_at = perf_counter()
-        clean_waypoints = list(dict.fromkeys(node for node in waypoints if node != start_node))
+        if order_mode not in {"auto", "ordered"}:
+            raise ValueError("order_mode must be either auto or ordered.")
+
+        clean_waypoints = list(
+            dict.fromkeys(node for node in waypoints if node != start_node)
+        )
         if not clean_waypoints:
             return {
-                "algorithm": "nearest_neighbor",
+                "algorithm": (
+                    "ordered_tsp" if order_mode == "ordered" else "nearest_neighbor"
+                ),
                 "found": True,
                 "visiting_order": [start_node],
                 "path": [start_node],
@@ -86,12 +94,31 @@ class MultiLocationService:
         all_locations = [start_node, *clean_waypoints]
         matrices = self.build_matrices(graph, all_locations, profile, search_fn)
         cost_matrix, path_matrix, distance_matrix, time_matrix = matrices
-        nearest = nearest_neighbor_tsp(
-            start_node,
-            clean_waypoints,
-            cost_matrix,
-            return_to_start,
-        )
+        if order_mode == "ordered":
+            ordered_visit = [start_node, *clean_waypoints]
+            if return_to_start:
+                ordered_visit.append(start_node)
+            ordered_segments = list(zip(ordered_visit, ordered_visit[1:]))
+            unreachable = [
+                target
+                for source, target in ordered_segments
+                if cost_matrix[source][target] == float("inf")
+            ]
+            nearest = {
+                "visiting_order": ordered_visit,
+                "total_cost": sum(
+                    cost_matrix[source][target] for source, target in ordered_segments
+                ),
+                "nodes_explored": len(ordered_visit),
+                "unvisited_left": unreachable,
+            }
+        else:
+            nearest = nearest_neighbor_tsp(
+                start_node,
+                clean_waypoints,
+                cost_matrix,
+                return_to_start,
+            )
 
         full_path: list[str] = []
         total_distance = 0.0
@@ -99,19 +126,19 @@ class MultiLocationService:
         visiting_order = nearest["visiting_order"]
         for source, target in zip(visiting_order, visiting_order[1:]):
             segment = path_matrix.get(source, {}).get(target, [])
-            if segment:
-                full_path.extend(segment if not full_path else segment[1:])
+            if not segment:
+                break
+            full_path.extend(segment if not full_path else segment[1:])
             total_distance += distance_matrix.get(source, {}).get(target, 0.0)
             total_time += time_matrix.get(source, {}).get(target, 0.0)
 
         all_waypoints_reached = not nearest["unvisited_left"]
-        return_trip_completed = (
-            not return_to_start
-            or visiting_order[-1] == start_node
-        )
+        return_trip_completed = not return_to_start or visiting_order[-1] == start_node
 
         return {
-            "algorithm": "nearest_neighbor",
+            "algorithm": (
+                "ordered_tsp" if order_mode == "ordered" else "nearest_neighbor"
+            ),
             "found": all_waypoints_reached and return_trip_completed,
             "visiting_order": visiting_order,
             "path": full_path or [start_node],
@@ -129,7 +156,7 @@ def _resolve_profile(profile: CostProfile | str) -> CostProfile:
     if isinstance(profile, CostProfile):
         return profile
     if profile not in COST_PROFILES:
-        raise ValueError(f"Cost profile không tồn tại: {profile}")
+        raise ValueError(f"Unknown cost profile: {profile}")
     return COST_PROFILES[profile]
 
 

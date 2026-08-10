@@ -1,1 +1,1 @@
-"""Cấu hình và logic lõi."""
+"""Domain models, graph structures, and cost calculation primitives."""

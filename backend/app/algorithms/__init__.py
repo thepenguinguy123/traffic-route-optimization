@@ -1,1 +1,1 @@
-"""Các thuật toán tìm đường."""
+"""Registered graph-search and multi-stop routing algorithms."""

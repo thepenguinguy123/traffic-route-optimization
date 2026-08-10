@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.app.core.cost import CostCalculator
+from backend.app.core.cost import MAX_DISTANCE_KM, MAX_TIME_MIN, CostCalculator
 from backend.app.core.cost_profiles import COST_PROFILES
 from backend.app.core.models import RoadEdge
 
@@ -53,4 +53,31 @@ def test_route_cost():
         COST_PROFILES["balanced"],
     )
 
-    assert route_cost == pytest.approx(0.60)
+    assert route_cost == pytest.approx(1.50)
+
+
+def test_fractional_risk_factor_is_used_in_route_cost():
+    edge = RoadEdge(
+        source="A",
+        target="B",
+        distance_km=1.0,
+        base_time_min=1.0,
+        congestion_level=1,
+        road_type="main_road",
+        risk_level=0,
+        risk_factor=2.5,
+        restriction="none",
+    )
+
+    cost = CostCalculator().calculate_edge_cost(
+        edge,
+        COST_PROFILES["balanced"],
+    )
+
+    expected = (
+        0.30 * min(1.0 / MAX_DISTANCE_KM, 1.0)
+        + 0.45 * min(1.0 / MAX_TIME_MIN, 1.0)
+        + 0.15 * 0.0
+        + 0.10 * 0.5
+    )
+    assert cost == pytest.approx(expected)

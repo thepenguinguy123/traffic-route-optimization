@@ -1,4 +1,7 @@
-"""Kiểm tra tính toàn vẹn của dataset nodes/edges được dùng runtime."""
+"""Validation tests for the cleaned graph datasets."""
+
+import json
+from pathlib import Path
 
 from backend.app.repositories.clean_dataset_repository import (
     load_clean_edges,
@@ -42,3 +45,24 @@ def test_food_metadata_and_directed_edges_are_preserved():
     assert food_node.metadata["on_edge"]["u"] == 23
     assert any(edge.road_type == "one_way" for edge in edges)
     assert any(edge.source == "2" and edge.target == "10" for edge in edges)
+
+
+def test_traffic_baseline_and_scenario_config_are_reproducible():
+    edges = load_clean_edges()
+    assert len({edge.congestion_level for edge in edges}) >= 3
+    assert len({edge.risk_factor for edge in edges}) >= 3
+
+    scenario_path = Path(__file__).parents[1] / "data" / "traffic_scenarios.json"
+    scenarios = json.loads(scenario_path.read_text(encoding="utf-8"))
+    assert scenarios["default_scenario"] == "normal"
+    assert set(scenarios["scenarios"]) == {
+        "normal",
+        "rush_hour",
+        "rainy_day",
+    }
+    for scenario in scenarios["scenarios"].values():
+        assert set(scenario["congestion_offset_by_road_type"]) == {
+            "one_way",
+            "main_street",
+            "access",
+        }

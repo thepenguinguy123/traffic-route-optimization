@@ -1,4 +1,4 @@
-"""Tương thích dữ liệu legacy với bộ graph sạch 98 node/176 edge."""
+"""Compatibility views and helpers backed by the cleaned graph dataset."""
 
 import math
 from typing import Any
@@ -39,7 +39,7 @@ EDGES: list[dict[str, Any]] = [
 
 
 def haversine_distance(node1: str, node2: str) -> float:
-    """Tính khoảng cách Haversine giữa hai node."""
+    """Return the great-circle distance between two graph nodes in kilometers."""
 
     if node1 not in NODES or node2 not in NODES:
         return float("inf")
@@ -57,18 +57,14 @@ def haversine_distance(node1: str, node2: str) -> float:
 
 
 def calculate_cost(edge: dict[str, Any], cost_type: str = "distance") -> float:
-    """Tính chi phí tương thích cho các thuật toán legacy."""
+    """Calculate a legacy edge cost for the requested cost type."""
 
     if cost_type == "distance":
         return edge["distance_km"]
     if cost_type == "time":
         return edge["time_min"]
     if cost_type == "combined":
-        return (
-            edge["distance_km"]
-            + edge["time_min"] / 10.0
-            + edge["congestion"] * 0.4
-        )
+        return edge["distance_km"] + edge["time_min"] / 10.0 + edge["congestion"] * 0.4
     return edge["distance_km"]
 
 
