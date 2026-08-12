@@ -125,9 +125,7 @@ function initMap() {
 }
 
 /**
-
- * @param {number} congestion - Congestion level from 1 to 10.
-
+ * @param {number} congestion - Congestion level from 1 to 5.
  */
 const EDGE_METRIC_CONFIG = {
   congestion: {
@@ -146,9 +144,9 @@ function edgeMetricExpression() {
   const property = state.edgeMetric === "risk" ? "risk" : "congestion";
   return [
     "step", ["coalesce", ["get", property], 0],
-    EDGE_METRIC_CONFIG[property].colors[0], 3,
-    EDGE_METRIC_CONFIG[property].colors[1], 6,
-    EDGE_METRIC_CONFIG[property].colors[2], 8,
+    EDGE_METRIC_CONFIG[property].colors[0], 2,
+    EDGE_METRIC_CONFIG[property].colors[1], 3,
+    EDGE_METRIC_CONFIG[property].colors[2], 4,
     EDGE_METRIC_CONFIG[property].colors[3],
   ];
 }
@@ -163,8 +161,9 @@ function updateEdgeLegend() {
   if (high) high.textContent = config.high;
 }
 function getCongestionColor(congestion) {
-  if (congestion <= 3) return "#22c55e";
-  if (congestion <= 6) return "#f59e0b";
+  if (congestion <= 2) return "#22c55e";
+  if (congestion <= 3) return "#f59e0b";
+  if (congestion <= 4) return "#f97316";
   return "#ef4444";
 }
 
