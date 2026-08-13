@@ -488,8 +488,8 @@ const NODES_CLEAN = [
     "type": "food",
     "source": "goong_places",
     "on_edge": {
-      "u": 23,
-      "v": 33,
+      "u": 33,
+      "v": 23,
       "t": 0.9303,
       "perp_m": 6.9
     }
@@ -911,8 +911,8 @@ const NODES_CLEAN = [
     "type": "food",
     "source": "goong_places",
     "on_edge": {
-      "u": 23,
-      "v": 33,
+      "u": 33,
+      "v": 23,
       "t": 0.4382,
       "perp_m": 7.6
     }
@@ -997,8 +997,8 @@ const NODES_CLEAN = [
     "type": "food",
     "source": "goong_places",
     "on_edge": {
-      "u": 23,
-      "v": 33,
+      "u": 33,
+      "v": 23,
       "t": 0.2999,
       "perp_m": 8.1
     }

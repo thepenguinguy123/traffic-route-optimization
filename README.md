@@ -10,6 +10,7 @@
 - `backend/app/repositories/`: lớp đọc và chuẩn hóa dataset.
 - `backend/app/services/`: route search, metrics, TSP và collector Goong Places.
 - `frontend/`: HTML/CSS/JavaScript thuần, Goong GL JS, không dùng framework build.
+- `LAB01_COMPLIANCE.md`: ??i chi?u source v?i y?u c?u Lab 01.
 
 ## Cài đặt
 
@@ -102,7 +103,36 @@ Edge dataset hiện dùng traffic baseline hybrid deterministic: congestion và 
 python -m black --check backend
 python -m compileall -q backend
 node --check frontend\app.js
-python -m pytest backend\tests -q -p no:cacheprovider
+python -m pytest backend\tests -q -p no:cacheprovider --basetemp=.pytest-tmp\test-run
 ```
 
 Bộ test hiện có gồm 25 trường hợp. Kiểm tra thêm thủ công các endpoint `/api/graph`, `/api/config`, `/api/food-places` khi backend đang chạy.
+
+## M? h?nh cost v? traffic scenario
+
+Cost c?a m?i edge l? t?ng c? tr?ng s? c?a b?n th?nh ph?n ?? chu?n h?a:
+
+- Kho?ng c?ch c? s?.
+- Th?i gian c? s?.
+- ?? tr? ph?t sinh do congestion.
+- M?c ph?i nhi?m r?i ro theo kho?ng c?ch.
+
+Congestion ???c d?ng ?? t?nh th?i gian di chuy?n th?c t? v? ph?n ?? tr?; c?ng th?c kh?ng c?ng l?p c?ng m?t penalty. C?c profile `shortest_distance` v? `fastest_route` ch? ?u ti?n m?nh t??ng ?ng kho?ng c?ch ho?c th?i gian, ??ng th?i v?n gi? penalty giao th?ng v? r?i ro. V? v?y ch?ng kh?ng ph?i c?c m?c ti?u ??n bi?n tuy?t ??i.
+
+`MAX_DISTANCE_KM` v? `MAX_TIME_MIN` l? reference scale ???c hi?u chu?n offline t? ph?n v? P95 c?a dataset. Ch?y ki?m tra hi?u chu?n t? th? m?c `backend`:
+
+```powershell
+python -m scripts.calibrate_cost_scales
+```
+
+?? audit tr?c ti?p c?c edge c? th? ?i ???c v? nh?n ?? xu?t ng??ng l?m tr?n ?n ??nh, ch?y t? th? m?c g?c:
+
+```powershell
+python backend/scripts/calibrate_normalization.py
+```
+
+Script n?y ch? in khuy?n ngh? v? kh?ng t? s?a `backend/app/core/cost.py`. V?i dataset hi?n t?i, script ?? xu?t `MAX_DISTANCE_KM = 0.25` v? `MAX_TIME_MIN = 0.6` d?a tr?n P95 c?a distance v? base time, sau khi l?m tr?n l?n b??c th?c d?ng. Congestion ???c t?nh ri?ng b?ng congestion delay trong cost runtime.
+
+Traffic scenario ch? thay ??i thu?c t?nh runtime c?a edge; cost profile v?n bi?u di?n ?u ti?n c?a ng??i d?ng. Graph endpoint nh?n scenario qua query string, v? d? `/api/graph?scenario=rush_hour`. M?u congestion/risk d?ng n?m m?c: level 1 xanh l?, level 2 xanh ??t chu?i, level 3 v?ng, level 4 cam v? level 5 ??.
+
+Dataset traffic l? baseline synthetic deterministic ph?c v? ??nh gi? thu?t to?n. Travel/speed factor, capacity v? travel-time reliability ???c ?? ? ph?n c?i ti?n t??ng lai v? dataset hi?n ch?a c? d? li?u t?c ??, l?u l??ng ho?c chu?i quan s?t theo th?i gian.

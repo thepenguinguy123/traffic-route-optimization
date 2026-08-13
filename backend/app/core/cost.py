@@ -11,11 +11,11 @@ CONGESTION_MULTIPLIERS = {
 }
 
 MAX_DISTANCE_KM = 0.25
-MAX_TIME_MIN = 0.60
+MAX_TIME_MIN = 0.6
 
 
 class CostCalculator:
-    """Calculate shared traffic costs using approved normalization limits."""
+    """Calculate additive traffic costs from normalized edge components."""
 
     def __init__(
         self,
@@ -46,20 +46,22 @@ class CostCalculator:
             return float("inf")
 
         actual_time = self.calculate_actual_time(edge)
-        normalized_distance = min(edge.distance_km / self.max_distance_km, 1.0)
-        normalized_actual_time = min(actual_time / self.max_time_min, 1.0)
-        normalized_congestion = (edge.congestion_level - 1) / 4
+        congestion_delay = max(0.0, actual_time - edge.base_time_min)
+        normalized_distance = edge.distance_km / self.max_distance_km
+        normalized_base_time = edge.base_time_min / self.max_time_min
+        normalized_congestion_delay = congestion_delay / self.max_time_min
 
         risk_factor = (
             edge.risk_factor if edge.risk_factor is not None else float(edge.risk_level)
         )
         normalized_risk = min(max(risk_factor / 5, 0.0), 1.0)
+        risk_exposure = normalized_distance * normalized_risk
 
         return (
             profile.distance_weight * normalized_distance
-            + profile.time_weight * normalized_actual_time
-            + profile.congestion_weight * normalized_congestion
-            + profile.risk_weight * normalized_risk
+            + profile.time_weight * normalized_base_time
+            + profile.congestion_weight * normalized_congestion_delay
+            + profile.risk_weight * risk_exposure
         )
 
     def calculate_path_cost(

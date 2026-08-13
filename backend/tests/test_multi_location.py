@@ -45,7 +45,7 @@ def test_multi_location_does_not_mark_partial_route_as_found():
                 distance_km=1.0,
                 base_time_min=1.0,
                 congestion_level=1,
-                road_type="main_street",
+                road_type="two_way",
                 risk_level=0,
                 restriction="none",
             )
@@ -82,7 +82,7 @@ def test_ordered_mode_preserves_waypoint_order():
                 distance_km=1.0,
                 base_time_min=1.0,
                 congestion_level=1,
-                road_type="main_street",
+                road_type="two_way",
                 risk_level=0,
                 restriction="none",
             )
@@ -141,7 +141,7 @@ def test_ordered_mode_stops_path_at_first_unreachable_segment():
             distance_km=1.0,
             base_time_min=1.0,
             congestion_level=1,
-            road_type="main_street",
+            road_type="two_way",
             risk_level=0,
             restriction="none",
         )

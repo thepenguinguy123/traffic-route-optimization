@@ -124,7 +124,7 @@ def test_cost_search_algorithms_choose_lower_cost_over_fewer_hops():
                 distance_km=distance,
                 base_time_min=distance,
                 congestion_level=1,
-                road_type="main_street",
+                road_type="two_way",
                 risk_level=0,
                 restriction="none",
             )

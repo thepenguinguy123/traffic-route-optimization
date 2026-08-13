@@ -15,7 +15,7 @@ _VALID_ROAD_TYPES = frozenset(
         "residential_road",
         "alley",
         "one_way",
-        "main_street",
+        "two_way",
         "access",
     }
 )
@@ -72,10 +72,10 @@ class RoadEdge:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.distance_km <= 0:
+        if not math.isfinite(self.distance_km) or self.distance_km <= 0:
             raise InvalidEdgeError("distance_km must be greater than 0")
-        if self.base_time_min < 0:
-            raise InvalidEdgeError("base_time_min must be non-negative")
+        if not math.isfinite(self.base_time_min) or self.base_time_min <= 0:
+            raise InvalidEdgeError("base_time_min must be greater than 0")
         if not 1 <= self.congestion_level <= 5:
             raise InvalidEdgeError("congestion_level must be between 1 and 5")
         if self.road_type not in _VALID_ROAD_TYPES:
@@ -86,8 +86,8 @@ class RoadEdge:
         if risk_factor is None:
             risk_factor = float(self.risk_level)
             object.__setattr__(self, "risk_factor", risk_factor)
-        if risk_factor < 0:
-            raise InvalidEdgeError("risk_factor must be non-negative")
+        if not math.isfinite(risk_factor) or not 0 <= risk_factor <= 5:
+            raise InvalidEdgeError("risk_factor must be between 0 and 5")
         if self.restriction not in _VALID_RESTRICTIONS:
             raise InvalidEdgeError("restriction is not supported")
 

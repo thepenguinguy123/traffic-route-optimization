@@ -53,7 +53,8 @@ def test_route_cost():
         COST_PROFILES["balanced"],
     )
 
-    assert route_cost == pytest.approx(1.50)
+    expected = 2 * (0.30 * (1.5 / MAX_DISTANCE_KM) + 0.45 * (5.0 / MAX_TIME_MIN))
+    assert route_cost == pytest.approx(expected)
 
 
 def test_fractional_risk_factor_is_used_in_route_cost():
@@ -75,9 +76,23 @@ def test_fractional_risk_factor_is_used_in_route_cost():
     )
 
     expected = (
-        0.30 * min(1.0 / MAX_DISTANCE_KM, 1.0)
-        + 0.45 * min(1.0 / MAX_TIME_MIN, 1.0)
+        0.30 * (1.0 / MAX_DISTANCE_KM)
+        + 0.45 * (1.0 / MAX_TIME_MIN)
         + 0.15 * 0.0
-        + 0.10 * 0.5
+        + 0.10 * (1.0 / MAX_DISTANCE_KM) * 0.5
     )
     assert cost == pytest.approx(expected)
+
+
+def test_cost_profile_weights_are_nonnegative_and_normalized():
+    """Keep every weighted cost profile mathematically well formed."""
+
+    for profile in COST_PROFILES.values():
+        weights = (
+            profile.distance_weight,
+            profile.time_weight,
+            profile.congestion_weight,
+            profile.risk_weight,
+        )
+        assert all(weight >= 0 for weight in weights)
+        assert sum(weights) == pytest.approx(1.0)

@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" />
     
-    <link rel="stylesheet" href="styles.css?v=20260810-compare-two-column-v11">
+    <link rel="stylesheet" href="styles.css?v=20260813-tsp-panel-v2">
 </head>
 <body>
     <div class="app-container">
@@ -63,26 +63,26 @@
                     </div>
                     <div id="tsp-waypoints-list" class="waypoints-list"></div>
 
-                    <div class="tsp-mode-panel">
-                        <span class="control-kicker">ROUTE MODE</span>
-                        <div class="tsp-mode-options" role="radiogroup" aria-label="TSP route mode">
-                            <label class="tsp-mode-option">
-                                <input type="radio" name="tsp-mode" value="auto" checked>
-                                <span><strong>Automatic</strong><small>Optimize waypoint order.</small></span>
-                            </label>
-                            <label class="tsp-mode-option">
-                                <input type="radio" name="tsp-mode" value="ordered">
-                                <span><strong>Ordered</strong><small>Preserve the draggable queue order.</small></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="tsp-queue-panel">
+                    <div class="tsp-route-panel">
                         <div class="tsp-queue-panel__header">
                             <div>
                                 <span class="control-kicker">ROUTE QUEUE</span>
                                 <p class="control-hint">Drag and drop to reorder stops.</p>
                             </div>
                             <span id="tsp-queue-count" class="tsp-queue-count">0</span>
+                        </div>
+                        <div class="tsp-route-panel__mode-row">
+                            <span class="tsp-mode-label">MODE</span>
+                            <div class="tsp-mode-options" role="radiogroup" aria-label="TSP route mode">
+                                <label class="tsp-mode-option">
+                                    <input type="radio" name="tsp-mode" value="auto" checked>
+                                    <strong>Automatic</strong>
+                                </label>
+                                <label class="tsp-mode-option">
+                                    <input type="radio" name="tsp-mode" value="ordered">
+                                    <strong>Ordered</strong>
+                                </label>
+                            </div>
                         </div>
                         <ol id="tsp-queue" class="tsp-queue" aria-label="TSP waypoint order"></ol>
                         <p id="tsp-queue-empty" class="tsp-queue__empty">No stops selected.</p>
@@ -121,11 +121,15 @@
                 </div>
                 <div class="action-buttons">
                     <button id="btn-start" class="btn-primary">Start Search</button>
-                    <button id="btn-compare" class="btn-secondary">Compare Algorithms</button>
                     <div class="playback-controls" style="display: none;">
                         <button id="btn-pause" class="btn-secondary">Pause</button>
                         <button id="btn-resume" class="btn-secondary" style="display: none;">Resume</button>
+                        <button id="btn-stop" class="btn-secondary">Stop</button>
                         <button id="btn-reset" class="btn-secondary">Reset</button>
+                    </div>
+                    <div class="compare-action">
+                        <span class="compare-action__label">ALGORITHM BENCHMARK</span>
+                        <button id="btn-compare" class="btn-compare">Compare Algorithms</button>
                     </div>
                 </div>
                 <div id="legend" class="glass-panel">
@@ -153,7 +157,7 @@
                             <span id="edge-low-label">Free-flowing</span>
                             <span id="edge-high-label">Congested</span>
                         </div>
-                        <p id="edge-direction-help" class="edge-direction-help">Arrows indicate travel direction. Two-way roads use opposing arrows.</p>
+                        <p id="edge-direction-help" class="edge-direction-help">Arrows indicate one-way direction. Edge colors show congestion or risk.</p>
                     </div>
                 </div>
             </div>
@@ -282,12 +286,12 @@
                     <button id="compare-drawer-close" class="results-drawer__close" type="button" aria-label="Close comparison panel">&times;</button>
                 </div>
                 <button id="compare-drawer-resizer" class="results-drawer__resizer" type="button" aria-label="Resize the comparison panel" title="Drag to resize the comparison panel"></button>
-                <button id="compare-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse comparison panel" aria-expanded="true">&darr;</button>
+                <button id="compare-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse comparison panel" aria-expanded="true"></button>
                 <div id="compare-drawer-content" class="results-drawer__content"></div>
             </aside>
         </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
-    <script src="app.js?v=20260810-compare-two-column-v11"></script>
+    <script src="app.js?v=20260813-tsp-drag-mode-v1"></script>
 </body>
 </html>

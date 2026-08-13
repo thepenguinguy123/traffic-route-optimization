@@ -42,3 +42,4 @@ Chạy các lệnh trong README trước khi push. Với frontend, mở DevTools
 - Runtime hỗ trợ scenario `normal`, `rush_hour` và `rainy_day`; graph variant được cache và dữ liệu baseline không bị mutate.
 
 - Frontend có scenario selector; thay đổi scenario sẽ clear kết quả và gửi scenario vào Search, Metrics và TSP.
+- Normalization ?? ch?t: `MAX_DISTANCE_KM = 0.25` v? `MAX_TIME_MIN = 0.6` l?y t? P95 c?a distance v? `base_time_min`, sau khi l?m tr?n l?n b??c th?c d?ng; congestion kh?ng thay ??i reference scale m? ?i v?o cost qua `congestion_delay`.

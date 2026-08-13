@@ -1,4 +1,4 @@
-﻿# 🤖 AGENTS.md: Hướng Dẫn cho AI Agents
+# 🤖 AGENTS.md: Hướng Dẫn cho AI Agents
 
 ## 📌 Quy Tắc Chung
 
@@ -45,10 +45,10 @@ cd ../frontend
 #### Backend
 ```bash
 cd backend
-uvicorn main:app --reload --port 8000
+python main.py
 ```
-- **Development**: `--reload` (auto-restart khi code thay đổi)
-- **Production**: `--workers 4` (4 worker processes)
+- **Development**: ??t `FLASK_DEBUG=1` khi c?n debug local.
+- **Demo/production**: gi? `FLASK_DEBUG=0` v? d?ng server tri?n khai ph? h?p.
 
 #### Frontend
 - Mở trực tiếp `frontend/index.html` trong trình duyệt
@@ -103,12 +103,12 @@ Lab1-CSAI/
 ├── CONTEXT.md              # ✅ Bối cảnh dự án
 ├── AGENTS.md               # ✅ Hướng dẫn cho AI agents
 ├── backend/
-│   ├── main.py             # FastAPI app + routes
+│   ├── main.py             # Flask app + routes
 │   ├── graph_data.py       # 56 nodes + edges + helpers
 │   ├── algorithms.py       # DFS, Greedy, TSP implementations
 │   └── requirements.txt    # Python dependencies
 └── frontend/
-    ├── index.html          # Main HTML (Leaflet + Goong Tiles)
+    ├── index.html          # Main HTML (Goong GL JS + Goong Tiles)
     ├── styles.css          # Minimalism CSS
     └── app.js              # Map logic + animation
 ```
@@ -130,7 +130,7 @@ Lab1-CSAI/
 | Hành Động | Lý Do | Giải Pháp |
 |-----------|-------|-----------|
 | Commit `.env` | Lộ API keys | Thêm `.env` vào `.gitignore` |
-| Dùng `goongjs` | Xung đột với Leaflet | Dùng `L.*` (Leaflet) |
+| Tr?n nhi?u map runtime | Control v? layer c? th? ch?ng nhau | Ch? d?ng `goongjs.*` theo ki?n tr?c hi?n t?i |
 | Xóa comments | Mất tài liệu | Giữ nguyên comments |
 | Thay đổi cấu trúc nodes/edges | Phá vỡ backend | Giữ nguyên format |
 | Hardcode values | Khó bảo trì | Dùng constants/variables |
@@ -141,15 +141,15 @@ Lab1-CSAI/
 ## ✅ Best Practices
 
 ### Backend (Python)
-- ✅ **Sử dụng Pydantic models** cho request/response validation
+- [ ] Payload API ???c ki?m tra ki?u v? tr??ng b?t bu?c tr??c khi ch?y service
 - ✅ **Type hints** cho tất cả hàm và biến
 - ✅ **Docstrings** cho tất cả hàm public
-- ✅ **Error handling** với HTTPException
+- [ ] L?i ??u v?o tr? JSON c?ng HTTP status ph? h?p
 - ✅ **Logging** cho debug (sử dụng `logging` module)
 
 **Ví dụ:**
 ```python
-from fastapi import HTTPException
+- [ ] L?i ??u v?o tr? JSON c?ng HTTP status ph? h?p
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -167,11 +167,11 @@ def search_route(req: SearchRequest):
         # Logic tìm đường
         return {"path": [...], "animation_log": [...]}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+- [ ] L?i ??u v?o tr? JSON c?ng HTTP status ph? h?p
 ```
 
 ### Frontend (JavaScript)
-- ✅ **Sử dụng Leaflet** cho bản đồ (`L.map`, `L.marker`)
+- ✅ **Sử dụng Goong GL JS** cho bản đồ (`goongjs.Map`, source/layer)
 - ✅ **Async/Await** cho fetch requests
 - ✅ **Error handling** với try-catch
 - ✅ **Modular code** (chia nhỏ hàm)
@@ -227,11 +227,11 @@ async function loadGraph() {
 | Lỗi | Nguyên Nhân | Debug Steps | Giải Pháp |
 |-----|-------------|-------------|-----------|
 | `403 Forbidden` (Goong Tiles) | API Key không hợp lệ | Kiểm tra `.env` + `app.js` | Lấy key mới từ Goong.io |
-| `L is not defined` | Leaflet không tải | Kiểm tra `<script src="...leaflet.js">` | Thêm Leaflet CDN |
+| `goongjs is not defined` | Goong GL JS kh?ng t?i | Ki?m tra script trong `index.html` | Kh?i ph?c CDN/asset Goong GL JS |
 | `Map container has 0 height` | CSS sai | Inspect `#map` trong DevTools | Sửa CSS: `#map { height: 100% }` |
-| `Cannot connect to backend` | Backend không chạy | `curl http://localhost:8000` | Chạy `uvicorn main:app --reload` |
-| `CORS error` | CORS không cấu hình | Kiểm tra response headers | Thêm `CORSMiddleware` trong `main.py` |
-| `onboarding.js error` | Goong JS SDK vẫn tải | Kiểm tra `<script>` tags | Xóa Goong JS SDK, dùng Leaflet |
+| `Cannot connect to backend` | Backend kh?ng ch?y ho?c tr? l?i | Ki?m tra status/response c?a API | Ch?y `python main.py` t? `backend` |
+| `CORS error` | Origin ch?a ???c cho ph?p | Ki?m tra `CORS_ORIGINS` | C?p nh?t `.env` v? Flask-CORS |
+| Map style kh?ng t?i | Key ho?c style URL kh?ng h?p l? | Ki?m tra Network v? `/api/config` | C?p nh?t map key h?p l? |
 
 ### Debug Commands
 ```bash
@@ -252,14 +252,14 @@ lsof -i :8000               # Linux/Mac
 
 ### Backend Checklist
 - [ ] Tất cả endpoints có **docstrings**
-- [ ] Tất cả request/response dùng **Pydantic models**
-- [ ] Có **error handling** (try-except + HTTPException)
+- [ ] Payload API ???c ki?m tra ki?u v? tr??ng b?t bu?c tr??c khi ch?y service
+- [ ] L?i ??u v?o tr? JSON c?ng HTTP status ph? h?p
 - [ ] Có **type hints** cho hàm và biến
 - [ ] **CORS** được cấu hình đúng
 - [ ] **Logging** cho debug (nếu cần)
 
 ### Frontend Checklist
-- [ ] Chỉ dùng **Leaflet** (không Goong JS SDK)
+- [ ] Ch? d?ng **Goong GL JS**; kh?ng tr?n th?m map runtime kh?c
 - [ ] Có **error handling** cho fetch requests
 - [ ] **Animation** chạy mượt mà
 - [ ] **Responsive** trên mobile/desktop
@@ -308,13 +308,13 @@ lsof -i :8000               # Linux/Mac
 
 ## 📚 Learning Resources
 
-### Python/FastAPI
-- [FastAPI Official Docs](https://fastapi.tiangolo.com/)
+### Python/Flask
+- [Flask Official Docs](https://flask.palletsprojects.com/)
 - [PEP 8 Style Guide](https://peps.python.org/pep-0008/)
 - [Python Type Hints](https://docs.python.org/3/library/typing.html)
 
-### JavaScript/Leaflet
-- [Leaflet Documentation](https://leafletjs.com/reference-1.9.4.html)
+### JavaScript/Goong GL JS
+- [Goong GL JS Documentation](https://docs.goong.io/)
 - [MDN JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 - [Async/Await Guide](https://javascript.info/async-await)
 
