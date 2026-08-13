@@ -537,8 +537,8 @@ const EDGES_CLEAN = [
     "risk_factor": 2.28
   },
   {
-    "source": 41,
-    "target": 33,
+    "source": 33,
+    "target": 41,
     "distance_km": 0.305,
     "base_time_min": 0.73,
     "congestion_level": 3,
@@ -782,8 +782,8 @@ const EDGES_CLEAN = [
   {
     "source": 1034,
     "target": 7,
-    "distance_km": 0.026,
-    "base_time_min": 0.06,
+    "distance_km": 0.043,
+    "base_time_min": 0.1,
     "congestion_level": 2,
     "road_type": "one_way",
     "risk_factor": 2.57
@@ -827,8 +827,8 @@ const EDGES_CLEAN = [
   {
     "source": 17,
     "target": 1007,
-    "distance_km": 0.039,
-    "base_time_min": 0.09,
+    "distance_km": 0.01,
+    "base_time_min": 0.02,
     "congestion_level": 5,
     "road_type": "one_way",
     "risk_factor": 1.2
@@ -836,8 +836,8 @@ const EDGES_CLEAN = [
   {
     "source": 1007,
     "target": 16,
-    "distance_km": 0.01,
-    "base_time_min": 0.02,
+    "distance_km": 0.039,
+    "base_time_min": 0.09,
     "congestion_level": 2,
     "road_type": "one_way",
     "risk_factor": 1.68
@@ -881,8 +881,8 @@ const EDGES_CLEAN = [
   {
     "source": 18,
     "target": 1006,
-    "distance_km": 0.01,
-    "base_time_min": 0.02,
+    "distance_km": 0.07,
+    "base_time_min": 0.17,
     "congestion_level": 2,
     "road_type": "one_way",
     "risk_factor": 2.72
@@ -890,8 +890,8 @@ const EDGES_CLEAN = [
   {
     "source": 1006,
     "target": 17,
-    "distance_km": 0.07,
-    "base_time_min": 0.17,
+    "distance_km": 0.01,
+    "base_time_min": 0.02,
     "congestion_level": 3,
     "road_type": "one_way",
     "risk_factor": 1.1
@@ -1007,8 +1007,8 @@ const EDGES_CLEAN = [
   {
     "source": 39,
     "target": 1025,
-    "distance_km": 0.01,
-    "base_time_min": 0.02,
+    "distance_km": 0.312,
+    "base_time_min": 0.75,
     "congestion_level": 3,
     "road_type": "one_way",
     "risk_factor": 2.5
@@ -1016,14 +1016,14 @@ const EDGES_CLEAN = [
   {
     "source": 1025,
     "target": 22,
-    "distance_km": 0.312,
-    "base_time_min": 0.75,
+    "distance_km": 0.01,
+    "base_time_min": 0.02,
     "congestion_level": 1,
     "road_type": "one_way",
     "risk_factor": 2.17
   },
   {
-    "source": 33,
+    "source": 23,
     "target": 1004,
     "distance_km": 0.011,
     "base_time_min": 0.03,
@@ -1051,7 +1051,7 @@ const EDGES_CLEAN = [
   },
   {
     "source": 1039,
-    "target": 23,
+    "target": 33,
     "distance_km": 0.047,
     "base_time_min": 0.11,
     "congestion_level": 3,
@@ -1260,7 +1260,7 @@ const EDGES_CLEAN = [
     "source": 1017,
     "target": 1003,
     "distance_km": 0.001,
-    "base_time_min": 0.0,
+    "base_time_min": 0.01,
     "congestion_level": 2,
     "road_type": "one_way",
     "risk_factor": 2.21
@@ -1340,8 +1340,8 @@ const EDGES_CLEAN = [
   {
     "source": 45,
     "target": 1026,
-    "distance_km": 0.049,
-    "base_time_min": 0.12,
+    "distance_km": 0.08,
+    "base_time_min": 0.2,
     "congestion_level": 2,
     "road_type": "one_way",
     "risk_factor": 1.02
@@ -1358,8 +1358,8 @@ const EDGES_CLEAN = [
   {
     "source": 1020,
     "target": 44,
-    "distance_km": 0.077,
-    "base_time_min": 0.18,
+    "distance_km": 0.052,
+    "base_time_min": 0.12,
     "congestion_level": 4,
     "road_type": "one_way",
     "risk_factor": 2.09
@@ -1394,8 +1394,8 @@ const EDGES_CLEAN = [
   {
     "source": 47,
     "target": 1013,
-    "distance_km": 0.064,
-    "base_time_min": 0.15,
+    "distance_km": 0.117,
+    "base_time_min": 0.28,
     "congestion_level": 3,
     "road_type": "one_way",
     "risk_factor": 2.72
@@ -1403,8 +1403,8 @@ const EDGES_CLEAN = [
   {
     "source": 1013,
     "target": 46,
-    "distance_km": 0.117,
-    "base_time_min": 0.28,
+    "distance_km": 0.064,
+    "base_time_min": 0.15,
     "congestion_level": 4,
     "road_type": "one_way",
     "risk_factor": 1.42
@@ -1448,8 +1448,8 @@ const EDGES_CLEAN = [
   {
     "source": 53,
     "target": 1009,
-    "distance_km": 0.043,
-    "base_time_min": 0.1,
+    "distance_km": 0.027,
+    "base_time_min": 0.06,
     "congestion_level": 4,
     "road_type": "one_way",
     "risk_factor": 2.95
@@ -1457,8 +1457,8 @@ const EDGES_CLEAN = [
   {
     "source": 1009,
     "target": 52,
-    "distance_km": 0.027,
-    "base_time_min": 0.06,
+    "distance_km": 0.043,
+    "base_time_min": 0.1,
     "congestion_level": 3,
     "road_type": "one_way",
     "risk_factor": 2.76
