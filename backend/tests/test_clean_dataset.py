@@ -18,6 +18,7 @@ def test_clean_dataset_has_expected_shape_and_references():
     assert len(edges) == 176
     assert len(node_ids) == len(nodes)
     assert all(edge.source in node_ids and edge.target in node_ids for edge in edges)
+    assert all(edge.base_time_min > 0 for edge in edges)
     assert len({(edge.source, edge.target) for edge in edges}) == len(edges)
     assert sum(node.node_type == "food" for node in nodes) == 39
     assert sum(node.node_type == "access" for node in nodes) == 3
@@ -42,9 +43,31 @@ def test_food_metadata_and_directed_edges_are_preserved():
 
     assert food_node.node_type == "food"
     assert food_node.metadata["source"] == "goong_places"
-    assert food_node.metadata["on_edge"]["u"] == 23
+    assert food_node.metadata["on_edge"]["u"] == 33
     assert any(edge.road_type == "one_way" for edge in edges)
     assert any(edge.source == "2" and edge.target == "10" for edge in edges)
+    edge_pairs = {(edge.source, edge.target) for edge in edges}
+    assert all(
+        edge.road_type != "two_way" or (edge.target, edge.source) in edge_pairs
+        for edge in edges
+    )
+
+
+def test_food_chain_edges_follow_dataset_direction():
+    edges = load_clean_edges()
+    edge_pairs = {(edge.source, edge.target) for edge in edges}
+
+    expected_direction = [
+        ("41", "33"),
+        ("33", "1039"),
+        ("1039", "1033"),
+        ("1033", "1004"),
+        ("1004", "23"),
+    ]
+    assert all(edge in edge_pairs for edge in expected_direction)
+    assert all(
+        (target, source) not in edge_pairs for source, target in expected_direction
+    )
 
 
 def test_traffic_baseline_and_scenario_config_are_reproducible():
@@ -63,6 +86,6 @@ def test_traffic_baseline_and_scenario_config_are_reproducible():
     for scenario in scenarios["scenarios"].values():
         assert set(scenario["congestion_offset_by_road_type"]) == {
             "one_way",
-            "main_street",
+            "two_way",
             "access",
         }

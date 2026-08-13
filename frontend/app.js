@@ -117,6 +117,7 @@ function initMap() {
   state.map.on("load", () => {
     console.log("[Map] Goong GL JS map is ready.");
     hideGoongPoiIcons();
+    hideGoongLabels();
     showLoading(true, "Loading graph data...");
     loadGraph()
       .then(() => populateDropdowns())
@@ -131,12 +132,12 @@ const EDGE_METRIC_CONFIG = {
   congestion: {
     low: "Free-flowing",
     high: "Congested",
-    colors: ["#16a34a", "#facc15", "#f97316", "#ef4444"],
+    colors: ["#16a34a", "#84cc16", "#facc15", "#f97316", "#ef4444"],
   },
   risk: {
-    low: "Low risk",
-    high: "High risk",
-    colors: ["#16a34a", "#facc15", "#f97316", "#ef4444"],
+    low: "Low Risk",
+    high: "High Risk",
+    colors: ["#16a34a", "#84cc16", "#facc15", "#f97316", "#ef4444"],
   },
 };
 
@@ -147,7 +148,8 @@ function edgeMetricExpression() {
     EDGE_METRIC_CONFIG[property].colors[0], 2,
     EDGE_METRIC_CONFIG[property].colors[1], 3,
     EDGE_METRIC_CONFIG[property].colors[2], 4,
-    EDGE_METRIC_CONFIG[property].colors[3],
+    EDGE_METRIC_CONFIG[property].colors[3], 5,
+    EDGE_METRIC_CONFIG[property].colors[4],
   ];
 }
 
@@ -161,8 +163,9 @@ function updateEdgeLegend() {
   if (high) high.textContent = config.high;
 }
 function getCongestionColor(congestion) {
-  if (congestion <= 2) return "#22c55e";
-  if (congestion <= 3) return "#f59e0b";
+  if (congestion <= 1) return "#16a34a";
+  if (congestion <= 2) return "#84cc16";
+  if (congestion <= 3) return "#facc15";
   if (congestion <= 4) return "#f97316";
   return "#ef4444";
 }
@@ -172,9 +175,42 @@ function getCongestionColor(congestion) {
 
 
  */
+function removeGraphLayers() {
+  if (!state.map) return;
+
+  const edgeLayerIds = [
+    "graph-edges-arrows",
+    "graph-edges-layer",
+    "graph-edges-casing",
+  ];
+  const nodeLayerIds = [
+    "graph-nodes-layer",
+    "graph-frontier-glow",
+    "graph-processing-glow",
+    "graph-processing-ring",
+  ];
+
+  state.map.off("click", "graph-edges-layer");
+  state.map.off("mouseenter", "graph-edges-layer");
+  state.map.off("mouseleave", "graph-edges-layer");
+  state.map.off("click", "graph-nodes-layer");
+  state.map.off("mouseenter", "graph-nodes-layer");
+  state.map.off("mouseleave", "graph-nodes-layer");
+
+  [...edgeLayerIds, ...nodeLayerIds].forEach((layerId) => {
+    if (state.map.getLayer(layerId)) state.map.removeLayer(layerId);
+  });
+  ["graph-edges", "graph-edges-arrows", "graph-nodes"].forEach((sourceId) => {
+    if (state.map.getSource(sourceId)) state.map.removeSource(sourceId);
+  });
+}
+
 function renderEdges(edges, nodes) {
+  if (state.map.getSource("graph-edges")) removeGraphLayers();
   const features = [];
+  const arrowFeatures = [];
   const seenDirected = new Set();
+  const seenTwoWayPairs = new Set();
 
   for (const edge of edges) {
     const fromNode = nodes[edge.from];
@@ -184,8 +220,14 @@ function renderEdges(edges, nodes) {
     const direction = String(edge.direction || edge.road_type || edge.one_way || "").toLowerCase();
     const isOneWay = direction.includes("one_way") || direction.includes("one-way") || edge.bidirectional === false;
     const directedKey = `${edge.from}->${edge.to}`;
-    if (seenDirected.has(directedKey)) continue;
-    seenDirected.add(directedKey);
+    if (isOneWay) {
+      if (seenDirected.has(directedKey)) continue;
+      seenDirected.add(directedKey);
+    } else {
+      const pairKey = [String(edge.from), String(edge.to)].sort().join("|");
+      if (seenTwoWayPairs.has(pairKey)) continue;
+      seenTwoWayPairs.add(pairKey);
+    }
 
     features.push({
       type: "Feature",
@@ -204,6 +246,23 @@ function renderEdges(edges, nodes) {
         coordinates: [
           [fromNode.lng, fromNode.lat],
           [toNode.lng, toNode.lat],
+        ],
+      },
+    });
+    const dx = Number(toNode.lng) - Number(fromNode.lng);
+    const dy = Number(toNode.lat) - Number(fromNode.lat);
+    arrowFeatures.push({
+      type: "Feature",
+      properties: {
+        direction: isOneWay ? "one-way" : "two-way",
+        marker: isOneWay ? "one-way" : "two-way",
+        bearing: Math.atan2(-dy, dx) * 180 / Math.PI,
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [
+          (Number(fromNode.lng) + Number(toNode.lng)) / 2,
+          (Number(fromNode.lat) + Number(toNode.lat)) / 2,
         ],
       },
     });
@@ -237,24 +296,73 @@ function renderEdges(edges, nodes) {
       "line-offset": ["interpolate", ["linear"], ["zoom"], 12, 0.7, 20, 1.4],
     },
   });
+
+  if (!state.map.hasImage("one-way-arrow")) {
+    const arrowCanvas = document.createElement("canvas");
+    arrowCanvas.width = 36;
+    arrowCanvas.height = 24;
+    const context = arrowCanvas.getContext("2d");
+    context.fillStyle = "#16a34a";
+    context.beginPath();
+    context.moveTo(2, 2);
+    context.lineTo(34, 12);
+    context.lineTo(2, 22);
+    context.quadraticCurveTo(7, 12, 2, 2);
+    context.closePath();
+    context.fill();
+    const arrowImage = context.getImageData(
+      0,
+      0,
+      arrowCanvas.width,
+      arrowCanvas.height,
+    );
+    state.map.addImage("one-way-arrow", arrowImage, { pixelRatio: 1 });
+
+    const equalsCanvas = document.createElement("canvas");
+    equalsCanvas.width = 36;
+    equalsCanvas.height = 24;
+    const equalsContext = equalsCanvas.getContext("2d");
+    equalsContext.fillStyle = "#16a34a";
+    equalsContext.strokeStyle = "#ffffff";
+    equalsContext.lineWidth = 2;
+    equalsContext.lineJoin = "round";
+    equalsContext.fillRect(2, 2, 28, 8);
+    equalsContext.strokeRect(2, 2, 28, 8);
+    equalsContext.fillRect(2, 19, 28, 10);
+    equalsContext.strokeRect(2, 19, 28, 10);
+    const equalsImage = equalsContext.getImageData(
+      0,
+      0,
+      equalsCanvas.width,
+      equalsCanvas.height,
+    );
+    state.map.addImage("two-way-equals", equalsImage, { pixelRatio: 1 });
+  }
+  state.map.addSource("graph-edges-arrows", {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: arrowFeatures },
+  });
   state.map.addLayer({
     id: "graph-edges-arrows",
     type: "symbol",
-    source: "graph-edges",
-    filter: ["==", ["get", "direction"], "one-way"],
+    source: "graph-edges-arrows",
     layout: {
-      "symbol-placement": "line",
-      "symbol-spacing": 70,
-      "text-field": "\u25b6",
-      "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 18, 14],
-      "text-keep-upright": false,
-      "text-allow-overlap": true,
-      "text-offset": [0, -0.2],
+      "icon-image": [
+        "match",
+        ["get", "marker"],
+        "two-way",
+        "two-way-equals",
+        "one-way-arrow",
+      ],
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.35, 18, 0.5],
+      "icon-rotate": ["get", "bearing"],
+      "icon-rotation-alignment": "map",
+      "icon-allow-overlap": true,
+      "icon-ignore-placement": true,
+      "icon-offset": [0, 2],
     },
     paint: {
-      "text-color": edgeMetricExpression(),
-      "text-halo-color": "#ffffff",
-      "text-halo-width": 1.2,
+      "icon-opacity": 0.98,
     },
   });
 
@@ -264,13 +372,31 @@ function renderEdges(edges, nodes) {
     const metric = state.edgeMetric === "risk" ? edge.risk : edge.congestion;
     new goongjs.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(event.lngLat)
-      .setHTML(`<strong>${edge.direction === "one-way" ? "One-way road" : "Two-way road"}</strong><br>${state.edgeMetric}: ${Number(metric).toFixed(1)}`)
+      .setHTML(
+        '<div class="map-popup">' +
+        '<strong class="map-popup__title">' +
+        escapeHtml(edge.direction === "one-way" ? "One-way road" : "Two-way road") +
+        '</strong>' +
+        '<span class="map-popup__detail">' +
+        escapeHtml(formatDisplayText(state.edgeMetric)) + ': ' +
+        Number(metric).toFixed(1) +
+        '</span>' +
+        '</div>',
+      )
       .addTo(state.map);
   });
   state.map.on("mouseenter", "graph-edges-layer", () => { state.map.getCanvas().style.cursor = "pointer"; });
   state.map.on("mouseleave", "graph-edges-layer", () => { state.map.getCanvas().style.cursor = ""; });
 }
 function renderNodes(nodes) {
+  if (state.map.getSource("graph-nodes")) {
+    const source = state.map.getSource("graph-nodes");
+    source.setData({ type: "FeatureCollection", features: [] });
+    ["graph-nodes-layer", "graph-frontier-glow"].forEach((layerId) => {
+      if (state.map.getLayer(layerId)) state.map.removeLayer(layerId);
+    });
+    state.map.removeSource("graph-nodes");
+  }
   const features = [];
   state.nodeFeatures = {};
   for (const [id, node] of Object.entries(nodes)) {
@@ -296,6 +422,43 @@ function renderNodes(nodes) {
     data: { type: "FeatureCollection", features },
   });
   state.map.addLayer({
+    id: "graph-frontier-glow",
+    type: "circle",
+    source: "graph-nodes",
+    filter: ["==", ["get", "status"], "frontier"],
+    paint: {
+      "circle-radius": 12,
+      "circle-color": "#facc15",
+      "circle-opacity": 0.48,
+      "circle-blur": 0.35,
+    },
+  });
+  state.map.addLayer({
+    id: "graph-processing-glow",
+    type: "circle",
+    source: "graph-nodes",
+    filter: ["==", ["get", "status"], "processing"],
+    paint: {
+      "circle-radius": 12,
+      "circle-color": "#ef4444",
+      "circle-opacity": 0.3,
+      "circle-blur": 0.55,
+    },
+  });
+  state.map.addLayer({
+    id: "graph-processing-ring",
+    type: "circle",
+    source: "graph-nodes",
+    filter: ["==", ["get", "status"], "processing"],
+    paint: {
+      "circle-radius": 8,
+      "circle-color": "#ffffff",
+      "circle-opacity": 0.96,
+      "circle-stroke-color": "#ef4444",
+      "circle-stroke-width": 2,
+    },
+  });
+  state.map.addLayer({
     id: "graph-nodes-layer",
     type: "circle",
     source: "graph-nodes",
@@ -305,17 +468,19 @@ function renderNodes(nodes) {
         "match", ["get", "status"],
         "frontier", "#facc15",
         "visited", "#16a34a",
+        "processing", "#ef4444",
         "current", "#ef4444",
         "optimal", "#1769f9",
         ["match", ["get", "type"], "food", "#f97316", "#ffffff"],
       ],
       "circle-stroke-color": [
         "match", ["get", "status"],
-        "frontier", "#a16207",
+        "frontier", "#000000",
         "visited", "#166534",
+        "processing", "#b91c1c",
         "current", "#b91c1c",
         "optimal", "#0b4fbd",
-        ["match", ["get", "type"], "food", "#c2410c", "#000000"],
+        ["match", ["get", "type"], "food", "#000000", "#000000"],
       ],
       "circle-stroke-width": 1.5,
     },
@@ -327,7 +492,14 @@ function renderNodes(nodes) {
     const address = node.address ? `<br>${node.address}` : "";
     new goongjs.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(event.lngLat)
-      .setHTML(`<strong>${node.name}</strong>${address}`)
+      .setHTML(
+        '<div class="map-popup">' +
+        '<strong class="map-popup__title">' + escapeHtml(node.name) + '</strong>' +
+        (node.address
+          ? '<span class="map-popup__detail">' + escapeHtml(node.address) + '</span>'
+          : '') +
+        '</div>',
+      )
       .addTo(state.map);
   });
   state.map.on("mouseenter", "graph-nodes-layer", () => { state.map.getCanvas().style.cursor = "pointer"; });
@@ -449,7 +621,7 @@ function renderEndpointLayers() {
     id: "selected-route-labels",
     type: "symbol",
     source: "selected-route-points",
-    filter: selectedFilter,
+    filter: ["in", "role", "start", "end", "waypoint"],
     layout: {
       "text-field": ["get", "label"],
       "text-size": 16,
@@ -492,7 +664,16 @@ function renderEndpointLayers() {
       if (!node) return;
       new goongjs.Popup({ closeButton: true, closeOnClick: true })
         .setLngLat(event.lngLat)
-        .setHTML(`<strong>${escapeHtml(feature.properties.label)} &middot; ${escapeHtml(node.name)}</strong><br>${escapeHtml(node.address || "")}`)
+        .setHTML(
+          '<div class="map-popup">' +
+          '<strong class="map-popup__title">' +
+          escapeHtml(feature.properties.label) + ' &middot; ' + escapeHtml(node.name) +
+          '</strong>' +
+          (node.address
+            ? '<span class="map-popup__detail">' + escapeHtml(node.address) + '</span>'
+            : '') +
+          '</div>',
+        )
         .addTo(state.map);
     });
     state.map.on("mouseenter", "selected-route-core", () => { state.map.getCanvas().style.cursor = "pointer"; });
@@ -584,7 +765,14 @@ function renderFoodPlaces(places) {
     const place = event.features[0].properties;
     new goongjs.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(event.lngLat)
-      .setHTML(`<strong>${place.name}</strong><br>${place.address}`)
+      .setHTML(
+        '<div class="map-popup">' +
+        '<strong class="map-popup__title">' + escapeHtml(place.name) + '</strong>' +
+        (place.address
+          ? '<span class="map-popup__detail">' + escapeHtml(place.address) + '</span>'
+          : '') +
+        '</div>',
+      )
       .addTo(state.map);
   });
 }
@@ -630,12 +818,17 @@ function highlightPath(path) {
       geometry: { type: "LineString", coordinates },
     },
   });
-  state.map.addLayer({
+  const routeLayer = {
     id: "optimal-path-layer",
     type: "line",
     source: "optimal-path",
+    layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-color": "#1769f9", "line-width": 6, "line-opacity": 0.95 },
-  });
+  };
+  const markerLayerId = state.map.getLayer("selected-route-outer")
+    ? "selected-route-outer"
+    : undefined;
+  state.map.addLayer(routeLayer, markerLayerId);
 
   path.forEach((nodeId) => updateMarkerColor(nodeId, "optimal"));
 }
@@ -712,6 +905,7 @@ function runAnimationStep() {
 
  */
 function finishAnimation() {
+  state.animationTimer = null;
   state.isAnimating = false;
   togglePlaybackControls(false);
   const { finalPath, stats, explanation, explanationDetails, visitingOrder } = state.pendingResults;
@@ -730,13 +924,22 @@ function togglePlaybackControls(animating) {
   const playbackControls = document.querySelector(".playback-controls");
   if (animating) {
     btnStart.style.display = "none";
-    playbackControls.style.display = "flex";
+    playbackControls.style.display = "grid";
     document.getElementById("btn-pause").style.display = "flex";
     document.getElementById("btn-resume").style.display = "none";
   } else {
     btnStart.style.display = "flex";
     playbackControls.style.display = "none";
   }
+}
+
+function stopAnimation() {
+  clearTimeout(state.animationTimer);
+  state.animationTimer = null;
+  state.isAnimating = false;
+  state.isPaused = false;
+  state.pendingResults = { finalPath: null, stats: null, explanation: null, explanationDetails: null, visitingOrder: [] };
+  togglePlaybackControls(false);
 }
 
 function clearSearchResults() {
@@ -846,11 +1049,12 @@ document.getElementById("btn-resume").addEventListener("click", () => {
   runAnimationStep();
 });
 
+document.getElementById("btn-stop").addEventListener("click", () => {
+  stopAnimation();
+});
+
 document.getElementById("btn-reset").addEventListener("click", () => {
-  clearTimeout(state.animationTimer);
-  state.isAnimating = false;
-  state.isPaused = false;
-  togglePlaybackControls(false);
+  stopAnimation();
   resetVisualization();
 });
 
@@ -877,9 +1081,12 @@ function syncDrawerToggle(drawer, toggleId, isCompareMode) {
   const toggle = document.getElementById(toggleId);
   if (!toggle || !drawer) return;
   const collapsed = drawer.classList.contains("is-collapsed");
-  toggle.textContent = isCompareMode
-    ? (collapsed ? "\u2191" : "\u2193")
-    : (collapsed ? "\u2039" : "\u203a");
+  toggle.textContent = "";
+  toggle.classList.toggle("is-collapsed", collapsed);
+  toggle.classList.toggle("is-expanded", !collapsed);
+  toggle.dataset.drawerDirection = isCompareMode
+    ? (collapsed ? "up" : "down")
+    : (collapsed ? "left" : "right");
   toggle.setAttribute("aria-expanded", String(!collapsed));
   toggle.setAttribute("aria-label", collapsed ? "Open panel" : "Collapse panel");
 }
@@ -929,6 +1136,10 @@ function getRouteEdge(fromId, toId) {
   const direction = String(reverse.direction || reverse.road_type || reverse.one_way || "").toLowerCase();
   const oneWay = direction.includes("one_way") || direction.includes("one-way") || reverse.bidirectional === false;
   return oneWay ? { edge: null, reversed: false } : { edge: reverse, reversed: true };
+}
+function formatDisplayText(value) {
+  const text = String(value ?? "").trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }
 function routeMetric(edge, keys) {
   if (!edge) return 0;
@@ -988,12 +1199,12 @@ function renderRouteStepDetail(container, step) {
     '</div>' +
     '<div class="route-step-detail__metrics" aria-label="Step metrics">' +
       '<div class="route-step-detail__metric"><span>Distance</span><strong>' + distance + '</strong></div>' +
-      '<div class="route-step-detail__metric"><span>Travel time</span><strong>' + time + '</strong></div>' +
+      '<div class="route-step-detail__metric"><span>Travel Time</span><strong>' + time + '</strong></div>' +
       '<div class="route-step-detail__metric"><span>Congestion</span><strong>' + congestion + '</strong></div>' +
       '<div class="route-step-detail__metric"><span>Risk</span><strong>' + risk + '</strong></div>' +
     '</div>' +
     '<div class="route-step-detail__direction">' +
-      '<span>Segment direction</span><strong>' + escapeHtml(step.direction) + '</strong>' +
+      '<span>Segment Direction</span><strong>' + escapeHtml(formatDisplayText(step.direction)) + '</strong>' +
     '</div>';
 }
 function selectRouteReviewStep(index) {
@@ -1014,7 +1225,9 @@ function renderRouteReview(path) {
   state.routeReview.path = (path || []).map(String); state.routeReview.steps = buildRouteReview(state.routeReview.path); state.routeReview.activeIndex = -1; list.innerHTML = "";
   state.routeReview.steps.forEach((step, index) => {
     const item = document.createElement("li"); item.className = "route-step-list__item"; item.tabIndex = 0; item.setAttribute("role", "button");
-    item.innerHTML = '<span class="route-step-list__index">' + (index + 1) + '</span><span class="route-step-list__text"><strong>' + escapeHtml(step.toName) + '</strong><small>' + escapeHtml(step.fromName) + ' ? ' + escapeHtml(step.toName) + '</small></span>';
+    const stepNumber = String(index + 1).padStart(2, "0");
+    item.setAttribute("aria-label", "Step " + stepNumber + ": " + step.fromName + " to " + step.toName);
+    item.innerHTML = '<span class="route-step-list__index">Step ' + stepNumber + '</span><span class="route-step-list__text"><strong>' + escapeHtml(step.toName) + '</strong><small>' + escapeHtml(step.fromName) + ' ? ' + escapeHtml(step.toName) + '</small></span>';
     item.addEventListener("click", () => selectRouteReviewStep(index));
     item.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRouteReviewStep(index); } });
     list.appendChild(item);
@@ -1044,9 +1257,11 @@ function renderTspQueue() {
     const node = state.nodesData.find((item) => String(item.id) === String(nodeId));
     if (!node) return;
     const item = document.createElement("li");
-    item.className = "tsp-queue__item";
-    item.draggable = true;
+    const isOrderedMode = state.tspMode === "ordered";
+    item.className = "tsp-queue__item" + (isOrderedMode ? " is-reorderable" : " is-locked");
+    item.draggable = isOrderedMode;
     item.dataset.nodeId = nodeId;
+    item.setAttribute("aria-disabled", String(!isOrderedMode));
     item.innerHTML = `
       <span class="tsp-queue__position">${index + 1}</span>
       <span class="tsp-queue__handle" aria-hidden="true">&#8942;</span>
@@ -1062,6 +1277,10 @@ function renderTspQueue() {
       renderTspQueue();
     });
     item.addEventListener("dragstart", (event) => {
+      if (!isOrderedMode) {
+        event.preventDefault();
+        return;
+      }
       state.draggedWaypointId = nodeId;
       item.classList.add("is-dragging");
       event.dataTransfer.effectAllowed = "move";
@@ -1072,10 +1291,12 @@ function renderTspQueue() {
       item.classList.remove("is-dragging");
     });
     item.addEventListener("dragover", (event) => {
+      if (!isOrderedMode) return;
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
     });
     item.addEventListener("drop", (event) => {
+      if (!isOrderedMode) return;
       event.preventDefault();
       const sourceId = state.draggedWaypointId || event.dataTransfer.getData("text/plain");
       const fromIndex = state.tspQueue.indexOf(sourceId);
@@ -1225,7 +1446,7 @@ function syncTspQueueFromSelection() {
  */
 async function loadGraph() {
   try {
-    const graphResponse = await fetch(`${API_BASE}/api/graph`);
+    const graphResponse = await fetch(`${API_BASE}/api/graph?scenario=${encodeURIComponent(state.trafficScenario)}`);
     if (!graphResponse.ok) throw new Error("Failed to load graph");
     const data = await graphResponse.json();
     state.graphData = data;
@@ -1238,7 +1459,8 @@ async function loadGraph() {
   } catch (err) {
     console.error("Error loading graph:", err);
     alert(
-      "Cannot connect to backend server. Make sure it is running at http://localhost:8000",
+      "Backend request failed: " + (err?.message || "Unknown error") +
+      ". Check http://localhost:8000 and the browser console.",
     );
   }
 }
@@ -1331,6 +1553,7 @@ if (trafficScenarioSelect) {
     state.trafficScenario = event.target.value || "normal";
     clearSearchResults();
     updateTrafficScenarioDescription();
+    loadGraph();
   });
 }
 
@@ -1345,6 +1568,7 @@ document.querySelectorAll('input[name="tsp-mode"]').forEach((input) => {
   input.addEventListener("change", () => {
     if (state.tspMode !== input.value) clearSearchResults();
     state.tspMode = input.value;
+    renderTspQueue();
   });
 });
 
@@ -1773,9 +1997,9 @@ function renderExplanationDetails(details = {}, visitingOrder = []) {
   const order = details.visiting_order_names || visitingOrder;
   const segments = details.high_impact_segments || [];
   const rows = [];
-  if (details.criterion) rows.push(["Criterion", details.criterion]);
-  if (details.guarantee) rows.push(["Guarantee", details.guarantee]);
-  if (details.status) rows.push(["Status", details.status]);
+  if (details.criterion) rows.push(["Criterion", formatDisplayText(details.criterion)]);
+  if (details.guarantee) rows.push(["Guarantee", formatDisplayText(details.guarantee)]);
+  if (details.status) rows.push(["Status", formatDisplayText(details.status)]);
   if (details.order_preserved) rows.push(["Order", "Requested waypoint order preserved."]);
   if (details.segments_optimized) rows.push(["Segments", "Each reachable segment optimized with A*."]);
   if (details.alternative) {
@@ -1787,8 +2011,8 @@ function renderExplanationDetails(details = {}, visitingOrder = []) {
   if (order.length > 0) rows.push(["Visiting order", order.join(" -> ")]);
   if (segments.length > 0) {
     rows.push([
-      "High-impact segments",
-      segments.map((segment) => `${segment.source} -> ${segment.target} (C${segment.congestion}, R${segment.risk})`).join("; "),
+      "Attention",
+      `${segments.length} high-impact segment(s). Details are shown in Route Steps.`,
     ]);
   }
   if (rows.length === 0) {
@@ -1843,3 +2067,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     showLoading(true, "Could not load the Goong Maps configuration.");
   }
 });
+
+
+function hideGoongLabels() {
+  const layers = state.map.getStyle()?.layers || [];
+  layers.filter((layer) => layer.type === 'symbol' && layer.layout && Object.prototype.hasOwnProperty.call(layer.layout, 'text-field')).forEach((layer) => {
+    try {
+      state.map.setPaintProperty(layer.id, 'text-opacity', 0);
+    } catch (error) {
+      console.warn('[Map] Could not hide label layer ' + layer.id, error);
+    }
+  });
+}

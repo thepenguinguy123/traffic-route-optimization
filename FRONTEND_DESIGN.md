@@ -32,7 +32,16 @@ Frontend không yêu cầu React hoặc Tailwind; HTML/CSS/JavaScript thuần ph
 ## Chi tiết từng bước
 
 Mỗi bước tuyến được trình bày theo ba lớp: cặp điểm `FROM`/`TO`, lưới bốn thông số khoảng cách/thời gian/ùn tắc/rủi ro, và dòng mô tả hướng cạnh. Cấu trúc này giữ tên địa điểm dài trong vùng giới hạn, giúp người dùng quét nhanh thông tin mà không phải đọc chuỗi dấu gạch chéo.
+Route Reasoning ch? hi?n th? s? l??ng high-impact segment v? h??ng d?n xem chi ti?t trong Route Steps; kh?ng l?p l?i danh s?ch edge d?i.
 
 ## Tương tác bảng so sánh
 
 Mỗi row thuật toán là một control có thể click hoặc chọn bằng `Enter`/`Space`. Khi được chọn, row đổi trạng thái, bản đồ reset trạng thái duyệt trước đó, node đã duyệt chuyển sang xanh lá và final route chuyển sang primary; Bottom Panel vẫn được giữ mở để đối chiếu.
+
+## TSP v? tr?ng th?i animation
+
+- Route Mode v? Route Queue n?m trong c?ng m?t section; h?ng ch?n mode n?m ri?ng ?? kh?ng ch?n ti?u ?? ho?c b? ??m.
+- Mode `Automatic` kh?a k?o th? v? thu?t to?n t? t?i ?u th? t? waypoint. Mode `Ordered` cho ph?p k?o th? v? gi? ??ng th? t? queue.
+- Start kh?ng n?m trong queue. Waypoint v?n gi? s? th? t? ph?a tr?n marker tr?n b?n ??.
+- M?t b??c graph search ???c hi?n th? theo th? t? `Processing ? Frontier updates ? Visited`; m?u ?? c? v?ng n?n v? glow nh?, frontier c? glow v?ng.
+- Edge m?t chi?u c? m?t m?i t?n ? gi?a; edge hai chi?u c? k? hi?u `=` m?u xanh l? ? gi?a. C?c k? hi?u l? l?p tr?c quan, kh?ng thay ??i h??ng c?nh trong dataset.

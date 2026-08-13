@@ -76,7 +76,7 @@ ALGORITHM_OPTIONS = [
     {
         "id": "ida_star",
         "label": "IDA*",
-        "description": "Use iterative-deepening A* with bounded memory.",
+        "description": "Use iterative-deepening A* with an exact reverse-cost bound.",
         "group": "graph_core",
     },
     {
@@ -96,12 +96,12 @@ COST_OPTIONS = [
     {
         "id": "shortest_distance",
         "label": "Shortest Distance",
-        "description": "Prioritize total distance.",
+        "description": "Prioritize distance while retaining traffic and risk penalties.",
     },
     {
         "id": "fastest_route",
         "label": "Fastest Route",
-        "description": "Prioritize travel time.",
+        "description": "Prioritize time while retaining distance, congestion, and risk penalties.",
     },
     {
         "id": "avoid_congestion",
@@ -193,8 +193,23 @@ def serialize_core_result(
     """Serialize a search result and its animation trace for the frontend."""
 
     animation_log = []
+    previous_frontier_nodes: set[str] = set()
     for trace in result.frontier_steps:
+        animation_log.append(
+            {
+                "step": len(animation_log) + 1,
+                "node": trace.current.node_id,
+                "status": "processing",
+                "parent": trace.current.parent_id,
+            }
+        )
+
+        current_frontier_nodes = {
+            frontier_item.node_id for frontier_item in trace.frontier
+        }
         for frontier_item in trace.frontier:
+            if frontier_item.node_id in previous_frontier_nodes:
+                continue
             animation_log.append(
                 {
                     "step": len(animation_log) + 1,
@@ -203,6 +218,8 @@ def serialize_core_result(
                     "parent": frontier_item.parent_id,
                 }
             )
+        previous_frontier_nodes = current_frontier_nodes
+
         animation_log.append(
             {
                 "step": len(animation_log) + 1,
@@ -341,9 +358,14 @@ def compare_metrics():
 
 @app.route("/api/graph", methods=["GET"])
 def get_graph():
-    """Return the runtime graph used by the frontend."""
+    """Return the runtime graph for the requested traffic scenario."""
 
-    return jsonify(graph_response())
+    scenario = request.args.get("scenario", DEFAULT_SCENARIO)
+    try:
+        graph = load_clean_graph(scenario=scenario)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(graph_response(graph))
 
 
 @app.route("/api/nodes", methods=["GET"])
@@ -481,6 +503,12 @@ def tsp_route():
                     "step": len(animation_log) + 1,
                     "node": node_id,
                     "status": "frontier",
+                    "parent": None,
+                },
+                {
+                    "step": len(animation_log) + 1,
+                    "node": node_id,
+                    "status": "processing",
                     "parent": None,
                 },
                 {

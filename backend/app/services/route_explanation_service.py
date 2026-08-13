@@ -21,8 +21,8 @@ ALGORITHM_GUARANTEES: dict[str, str] = {
 
 PROFILE_LABELS = {
     "balanced": "balanced total cost",
-    "shortest_distance": "shortest distance",
-    "fastest_route": "fastest estimated travel time",
+    "shortest_distance": "distance-prioritized traffic cost",
+    "fastest_route": "time-prioritized traffic cost",
     "avoid_congestion": "lowest congestion-weighted cost",
 }
 
@@ -166,6 +166,8 @@ class RouteExplanationService:
                 {
                     "source": source,
                     "target": target,
+                    "source_name": graph.get_node(source).name,
+                    "target_name": graph.get_node(target).name,
                     "congestion": edge.congestion_level,
                     "risk": edge.risk_factor,
                     "road_type": edge.road_type,

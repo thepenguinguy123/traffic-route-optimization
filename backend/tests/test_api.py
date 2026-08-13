@@ -40,9 +40,27 @@ def test_graph_and_food_endpoints_use_clean_dataset():
     assert len(graph["nodes"]) == 98
     assert len(graph["edges"]) == 176
     assert graph["nodes"]["1039"]["address"]
-    assert graph["nodes"]["1039"]["on_edge"]["u"] == 23
+    assert graph["nodes"]["1039"]["on_edge"]["u"] == 33
     assert food_response.status_code == 200
     assert food["count"] == 39
+
+
+def test_graph_endpoint_uses_requested_traffic_scenario():
+    client = app.test_client()
+
+    normal = client.get("/api/graph?scenario=normal")
+    rush = client.get("/api/graph?scenario=rush_hour")
+    invalid = client.get("/api/graph?scenario=unknown")
+
+    assert normal.status_code == 200
+    assert rush.status_code == 200
+    assert invalid.status_code == 400
+    normal_edges = normal.get_json()["edges"]
+    rush_edges = rush.get_json()["edges"]
+    assert any(
+        normal_edge["congestion"] != rush_edge["congestion"]
+        for normal_edge, rush_edge in zip(normal_edges, rush_edges)
+    )
 
 
 def test_graph_core_search_uses_new_profile_contract():
@@ -66,10 +84,31 @@ def test_graph_core_search_uses_new_profile_contract():
     assert payload["animation_log"]
     assert any(item["status"] == "frontier" for item in payload["animation_log"])
     assert any(item["status"] == "visited" for item in payload["animation_log"])
+    animation_log = payload["animation_log"]
+    assert animation_log[0]["status"] == "processing"
+    processing_indices = [
+        index
+        for index, item in enumerate(animation_log)
+        if item["status"] == "processing"
+    ]
+    for index, processing_index in enumerate(processing_indices):
+        next_processing_index = (
+            processing_indices[index + 1]
+            if index + 1 < len(processing_indices)
+            else len(animation_log)
+        )
+        current_node = animation_log[processing_index]["node"]
+        assert any(
+            item["status"] == "visited" and item["node"] == current_node
+            for item in animation_log[processing_index + 1 : next_processing_index]
+        )
     assert payload["trace"]
     assert payload["explanation_details"]["status"] == "found"
     assert payload["explanation_details"]["criterion"]
     assert "guarantee" in payload["explanation_details"]
+    for segment in payload["explanation_details"]["high_impact_segments"]:
+        assert segment["source_name"]
+        assert segment["target_name"]
 
 
 def test_multi_location_route_uses_nearest_neighbor_service():
