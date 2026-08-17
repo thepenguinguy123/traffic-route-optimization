@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Architecture and program-flow diagram for Traffic Route Optimization - Lab 01.">
+  <title>Lab 01 · Traffic Route Optimization · System Architecture</title>
+  <style>
+    :root {
+      --white: #ffffff;
+      --ink: #111111;
+      --muted: #5d6470;
+      --paper: #f7f8fa;
+      --grid: #e7e7e7;
+      --blue: #1769f9;
+      --blue-soft: #eef4ff;
+      --cyan: #0891b2;
+      --cyan-soft: #e8fbff;
+      --amber: #c47d08;
+      --amber-soft: #fff7e5;
+      --violet: #7048b8;
+      --violet-soft: #f3efff;
+      --green: #15803d;
+      --green-soft: #ebf9ef;
+      --orange: #c2410c;
+      --orange-soft: #fff1e9;
+      --red: #b91c1c;
+      --red-soft: #fff0f0;
+      --shadow: 4px 4px 0 rgba(23, 105, 249, .12);
+      --shadow-dark: 4px 4px 0 rgba(0, 0, 0, .1);
+      --radius: 0;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--white);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      line-height: 1.45;
+    }
+    button, a { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--blue); }
+    :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+    .page { max-width: 1500px; margin: 0 auto; padding: 28px 32px 56px; }
+    .kicker {
+      color: var(--amber);
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-6);
+      align-items: end;
+      padding-bottom: var(--space-6);
+      border-bottom: 2px solid var(--ink);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 860px; margin-bottom: 8px; font-size: clamp(2rem, 4vw, 4.2rem); line-height: .98; letter-spacing: -.055em; }
+    .lede { max-width: 780px; margin-bottom: 0; color: #3d434c; font-size: 1rem; }
+    .stamp {
+      min-width: 220px;
+      padding: 14px 16px;
+      border: 1px solid var(--ink);
+      border-left: 4px solid var(--blue);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: .72rem;
+    }
+    .stamp strong { display: block; margin-bottom: 4px; font-size: .83rem; }
+    .section { margin-top: var(--space-10); }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
+    .section-head h2 { margin-bottom: 0; font-size: clamp(1.35rem, 2vw, 2rem); letter-spacing: -.03em; }
+    .section-note { max-width: 560px; margin-bottom: 0; color: var(--muted); font-size: .88rem; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      font-size: .76rem;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 14px; height: 14px; border: 1px solid var(--ink); display: inline-block; }
+    .sw-blue { background: var(--blue); } .sw-cyan { background: var(--cyan); }
+    .sw-amber { background: #f2c45f; } .sw-violet { background: #baa6e6; }
+    .sw-green { background: #78c592; } .sw-orange { background: #f5a27b; }
+    .diagram-frame {
+      overflow-x: auto;
+      padding: 14px;
+      border: 1px solid var(--ink);
+      background-color: var(--white);
+      background-image: none;
+      background-size: auto;
+    }
+    .diagram-frame svg { display: block; width: 100%; min-width: 1050px; height: auto; }
+    .diagram-frame.compact svg { min-width: 860px; }
+    .zone { fill: rgba(247, 248, 250, .86); stroke: #88919d; stroke-width: 1.5; stroke-dasharray: 7 6; }
+    .zone-label { fill: #4a535e; font: 700 12px "IBM Plex Mono", Consolas, monospace; letter-spacing: 1.5px; }
+    .node { stroke: var(--ink); stroke-width: 1.5; }
+    .node-title { fill: var(--ink); font: 700 15px Inter, "Segoe UI", sans-serif; }
+    .node-sub { fill: #4d5661; font: 12px Inter, "Segoe UI", sans-serif; }
+    .node-code { fill: #4d5661; font: 11px "IBM Plex Mono", Consolas, monospace; }
+    .node-blue { fill: var(--blue-soft); } .node-cyan { fill: var(--cyan-soft); }
+    .node-amber { fill: var(--amber-soft); } .node-violet { fill: var(--violet-soft); }
+    .node-green { fill: var(--green-soft); } .node-orange { fill: var(--orange-soft); }
+    .node-gray { fill: #f2f3f5; }
+    .rail-blue { stroke: var(--blue); stroke-width: 5; } .rail-cyan { stroke: var(--cyan); stroke-width: 5; }
+    .rail-amber { stroke: var(--amber); stroke-width: 5; } .rail-violet { stroke: var(--violet); stroke-width: 5; }
+    .rail-green { stroke: var(--green); stroke-width: 5; } .rail-orange { stroke: var(--orange); stroke-width: 5; }
+    .edge { fill: none; stroke: #374151; stroke-width: 1.8; marker-end: url(#arrow); }
+    .edge-hot { fill: none; stroke: var(--blue); stroke-width: 2.6; marker-end: url(#arrow-blue); }
+    .edge-async { fill: none; stroke: var(--orange); stroke-width: 1.8; stroke-dasharray: 7 6; marker-end: url(#arrow-orange); }
+    .edge-optional { fill: none; stroke: var(--violet); stroke-width: 1.8; stroke-dasharray: 2 6; marker-end: url(#arrow-violet); }
+    .edge-label { fill: #4d5661; font: 11px "IBM Plex Mono", Consolas, monospace; paint-order: stroke; stroke: var(--white); stroke-width: 5px; stroke-linejoin: round; }
+    .callout { fill: var(--white); stroke: var(--ink); stroke-width: 1.3; }
+    .callout-text { fill: var(--ink); font: 12px Inter, "Segoe UI", sans-serif; }
+    .callout-accent { stroke: var(--blue); stroke-width: 3; }
+    .actor { fill: var(--white); stroke: var(--ink); stroke-width: 1.5; }
+    .cylinder { fill: var(--green-soft); stroke: var(--ink); stroke-width: 1.5; }
+    .cloud { fill: var(--orange-soft); stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tab {
+      cursor: pointer;
+      padding: 9px 13px;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      background: var(--white);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .tab:hover, .tab[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: var(--white); }
+    .flow-panel[hidden] { display: none; }
+    .flow-panel { animation: appear .18s ease-out; }
+    .flow-figure-title {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      letter-spacing: -.01em;
+    }
+    .flow-panel + .flow-panel { margin-top: 18px; }
+    /* Section 6.2 flows: compact typography with a wider, breathable stage. */
+    .flow-panel .diagram-frame { padding: 20px 24px; }
+    .flow-panel .diagram-frame svg { min-width: 1360px; }
+    .flow-panel#flow-tsp .diagram-frame svg, .flow-panel#flow-metrics .diagram-frame svg { min-width: 1360px; }
+    .flow-panel .node-title { font-size: 12px; }
+    .flow-panel .node-sub { font-size: 10px; }
+    .flow-panel .node-code { font-size: 9px; }
+    .flow-panel .edge-label { font-size: 9px; stroke-width: 4px; transform: translateX(10px); }
+    .flow-panel .callout-text { font-size: 10px; }
+    .sequence-frame {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      border: 0;
+      background: #ffffff;
+    }
+    .sequence-frame svg {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      height: auto;
+      background: #ffffff;
+    }
+    .sequence-title { margin: 0 0 10px; font-size: 1.215rem; letter-spacing: -.01em; }
+    .sequence-frame .node-title { font-size: 13.5px; }
+    .seq-lane { fill: #f7f8fa; stroke: #88919d; stroke-width: 1.2; stroke-dasharray: 5 5; }
+    .seq-head { stroke: var(--ink); stroke-width: 1.4; }
+    .seq-life { stroke: #9aa3ad; stroke-width: 1.2; stroke-dasharray: 5 6; }
+    .seq-activation { fill: rgba(23, 105, 249, .12); stroke: var(--blue); stroke-width: 1.2; }
+    .seq-msg { fill: none; stroke: #374151; stroke-width: 1.8; marker-end: url(#seq-arrow); }
+    .seq-msg-hot { fill: none; stroke: var(--blue); stroke-width: 2.2; marker-end: url(#seq-arrow-hot); }
+    .seq-return { fill: none; stroke: #6b7280; stroke-width: 1.5; stroke-dasharray: 6 5; marker-end: url(#seq-arrow-return); }
+    .seq-label { fill: #374151; font: 15.3px "IBM Plex Mono", Consolas, monospace; paint-order: stroke; stroke: var(--white); stroke-width: 4px; stroke-linejoin: round; }
+    .seq-alt { fill: rgba(255, 247, 229, .55); stroke: var(--amber); stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .seq-alt-label { fill: var(--amber); font: 700 12.6px "IBM Plex Mono", Consolas, monospace; }
+    @keyframes appear { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--space-4); }
+    .card { border: 1px solid var(--ink); background: var(--white); box-shadow: var(--shadow-dark); }
+    .card-head { padding: 14px 16px 11px; border-bottom: 1px solid var(--ink); }
+    .card-head h3 { margin-bottom: 0; font-size: 1rem; }
+    .card-body { padding: 14px 16px; }
+    .module-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    .module-table th, .module-table td { padding: 9px 8px; border-bottom: 1px solid #d4d8de; text-align: left; vertical-align: top; }
+    .module-table th { color: var(--amber); font: 700 .65rem "IBM Plex Mono", Consolas, monospace; letter-spacing: .07em; text-transform: uppercase; }
+    .module-table code, .pill { font-family: "IBM Plex Mono", Consolas, monospace; font-size: .72rem; }
+    .module-table code { color: #293241; }
+    .pill { display: inline-block; padding: 3px 6px; border: 1px solid currentColor; white-space: nowrap; }
+    .pill-blue { color: var(--blue); background: var(--blue-soft); }
+    .pill-cyan { color: var(--cyan); background: var(--cyan-soft); }
+    .pill-amber { color: var(--amber); background: var(--amber-soft); }
+    .pill-violet { color: var(--violet); background: var(--violet-soft); }
+    .pill-green { color: var(--green); background: var(--green-soft); }
+    .pill-orange { color: var(--orange); background: var(--orange-soft); }
+    .formula { padding: 14px; border-left: 4px solid var(--blue); background: var(--blue-soft); font: 700 .9rem "IBM Plex Mono", Consolas, monospace; overflow-x: auto; }
+    .formula-detail { display: grid; gap: 7px; margin-top: 14px; }
+    .formula-detail div { display: grid; grid-template-columns: 115px 1fr; gap: 10px; padding-bottom: 7px; border-bottom: 1px solid #d4d8de; font-size: .78rem; }
+    .formula-detail strong { color: var(--blue); }
+    .mapping-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .mapping-card { min-height: 170px; padding: 13px; border: 1px solid var(--ink); background: var(--white); }
+    .mapping-card h3 { margin-bottom: 7px; font-size: .92rem; }
+    .mapping-card p { margin-bottom: 7px; color: #4d5661; font-size: .76rem; }
+    .mapping-card ul { margin: 0; padding-left: 17px; font-size: .75rem; }
+    .mapping-card li + li { margin-top: 4px; }
+    .evidence { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .evidence-card { padding: 13px; border: 1px solid var(--ink); border-top: 4px solid var(--blue); background: var(--paper); }
+    .evidence-card strong { display: block; margin-bottom: 4px; font-size: 1.28rem; letter-spacing: -.04em; }
+    .evidence-card span { color: var(--muted); font-size: .75rem; }
+    .notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .note { padding: 13px 15px; border: 1px solid var(--ink); border-left: 4px solid var(--amber); background: var(--amber-soft); font-size: .8rem; }
+    .note strong { display: block; margin-bottom: 4px; }
+    footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 42px; padding-top: 14px; border-top: 2px solid var(--ink); color: var(--muted); font-size: .72rem; }
+    @media (max-width: 900px) {
+      .page { padding: 22px 18px 44px; }
+      .masthead, .two-col { grid-template-columns: 1fr; }
+      .stamp { min-width: 0; }
+      .mapping-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .page { padding: 18px 12px 34px; }
+      .section { margin-top: 30px; }
+      .section-head { display: block; }
+      .section-note { margin-top: 8px; }
+      .mapping-grid, .notes { grid-template-columns: 1fr; }
+      .evidence { gap: 7px; }
+      .evidence-card { padding: 10px; }
+      .evidence-card strong { font-size: 1.05rem; }
+      footer { display: block; }
+      footer span { display: block; margin-top: 6px; }
+    }
+    @media print {
+      @page { size: A4 landscape; margin: 12mm; }
+      body { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .tabs { display: none; }
+      .flow-panel[hidden] { display: block; margin-top: 18px; }
+      .diagram-frame { break-inside: avoid; background-image: none; }
+      .diagram-frame svg { min-width: 0; }
+      .card, .evidence-card, .note { box-shadow: none; }
+      a { color: var(--ink); text-decoration: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div>
+        <div class="kicker">LAB 01 / PROGRAM FLOW / SYSTEM ARCHITECTURE</div>
+        <h1>Traffic Route<br>Optimization</h1>
+        <p class="lede">System map, processing flows, and the GUI–API contract for a District 1, Ho Chi Minh City traffic route optimizer.</p>
+      </div>
+      <div class="stamp"><strong>AUDIT SNAPSHOT</strong>16.08.2026<br>30 test passed · JS syntax OK<br>98 nodes · 176 directed edges</div>
+    </header>
+
+    <section class="section" id="overview">
+      <div class="section-head"><h2>01 / System map</h2><p class="section-note">Dashed regions show ownership boundaries. Solid lines are synchronous calls; dashed lines are offline pipelines or external integrations.</p></div>
+      <div class="diagram-frame" role="img" aria-label="Topology from the user through the frontend, Flask API, services, algorithms, graph core, and dataset">
+        <svg viewBox="0 0 1460 600" aria-labelledby="overview-title overview-desc">
+          <title id="overview-title">Traffic Route Optimization system topology</title>
+          <desc id="overview-desc">The browser drives the frontend, the frontend calls the Flask API, and the API orchestrates services and the algorithm registry. The graph core reads the clean dataset and returns results to the GUI.</desc>
+          <defs>
+            <marker markerUnits="userSpaceOnUse" id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#374151"/></marker>
+            <marker markerUnits="userSpaceOnUse" id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#1769f9"/></marker>
+            <marker markerUnits="userSpaceOnUse" id="arrow-orange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#c2410c"/></marker>
+            <marker markerUnits="userSpaceOnUse" id="arrow-violet" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#7048b8"/></marker>
+          </defs>
+          <rect class="zone" x="20" y="34" width="210" height="410"/><text class="zone-label" x="40" y="62">ACTOR / BROWSER</text>
+          <rect class="zone" x="250" y="34" width="270" height="410"/><text class="zone-label" x="270" y="62">FRONTEND · VANILLA WEB</text>
+          <rect class="zone" x="540" y="34" width="225" height="410"/><text class="zone-label" x="560" y="62">FLASK API / CORS</text>
+          <rect class="zone" x="785" y="34" width="285" height="410"/><text class="zone-label" x="805" y="62">APPLICATION SERVICES</text>
+          <rect class="zone" x="1090" y="34" width="360" height="410"/><text class="zone-label" x="1110" y="62">DOMAIN / DATA PLANE</text>
+
+          <circle class="actor" cx="125" cy="154" r="25"/><path d="M84 235 Q125 190 166 235" class="actor" fill="none"/><text class="node-title" x="125" y="285" text-anchor="middle">User</text><text class="node-sub" x="125" y="305" text-anchor="middle">select endpoints, mode, profile</text>
+          <rect class="node node-blue" x="55" y="350" width="140" height="62"/><line class="rail-blue" x1="55" y1="350" x2="55" y2="412"/><text class="node-title" x="72" y="375">Browser</text><text class="node-code" x="72" y="395">index.html</text>
+
+          <rect class="node node-blue" x="280" y="94" width="210" height="78"/><line class="rail-blue" x1="280" y1="94" x2="280" y2="172"/><text class="node-title" x="298" y="122">Control Panel</text><text class="node-sub" x="298" y="143">select + TSP queue + actions</text><text class="node-code" x="298" y="160">app.js · state</text>
+          <rect class="node node-blue" x="280" y="205" width="210" height="78"/><line class="rail-blue" x1="280" y1="205" x2="280" y2="283"/><text class="node-title" x="298" y="233">Goong Map Adapter</text><text class="node-sub" x="298" y="254">nodes, edges, route layers</text><text class="node-code" x="298" y="271">goongjs.Map + GeoJSON</text>
+          <rect class="node node-blue" x="280" y="316" width="210" height="78"/><line class="rail-blue" x1="280" y1="316" x2="280" y2="394"/><text class="node-title" x="298" y="344">Animation + Drawers</text><text class="node-sub" x="298" y="365">frontier / visited / review</text><text class="node-code" x="298" y="382">Right + Bottom panel</text>
+
+          <rect class="node node-cyan" x="570" y="94" width="165" height="78"/><line class="rail-cyan" x1="570" y1="94" x2="570" y2="172"/><text class="node-title" x="588" y="122">Public API</text><text class="node-sub" x="588" y="143">config · graph · nodes</text><text class="node-code" x="588" y="160">/api/*</text>
+          <rect class="node node-cyan" x="570" y="205" width="165" height="78"/><line class="rail-cyan" x1="570" y1="205" x2="570" y2="283"/><text class="node-title" x="588" y="233">Route Endpoints</text><text class="node-sub" x="588" y="254">search · tsp · metrics</text><text class="node-code" x="588" y="271">JSON in / JSON out</text>
+          <rect class="node node-cyan" x="570" y="316" width="165" height="78"/><line class="rail-cyan" x1="570" y1="316" x2="570" y2="394"/><text class="node-title" x="588" y="344">Validation + CORS</text><text class="node-sub" x="588" y="365">400 errors · origin policy</text><text class="node-code" x="588" y="382">Flask · flask-cors</text>
+
+          <rect class="node node-amber" x="815" y="94" width="225" height="78"/><line class="rail-amber" x1="815" y1="94" x2="815" y2="172"/><text class="node-title" x="833" y="122">Metrics Service</text><text class="node-sub" x="833" y="143">compare registered algorithms</text><text class="node-code" x="833" y="160">six registry calls</text>
+          <rect class="node node-amber" x="815" y="205" width="225" height="78"/><line class="rail-amber" x1="815" y1="205" x2="815" y2="283"/><text class="node-title" x="833" y="233">Multi-location Service</text><text class="node-sub" x="833" y="254">pairwise A* + route stitch</text><text class="node-code" x="833" y="271">auto / ordered</text>
+          <rect class="node node-amber" x="815" y="316" width="225" height="78"/><line class="rail-amber" x1="815" y1="316" x2="815" y2="394"/><text class="node-title" x="833" y="344">Explanation + Serialization</text><text class="node-sub" x="833" y="365">guarantee · alternative · stats</text><text class="node-code" x="833" y="382">RouteExplanationService</text>
+
+          <rect class="node node-violet" x="1115" y="94" width="155" height="78"/><line class="rail-violet" x1="1115" y1="94" x2="1115" y2="172"/><text class="node-title" x="1133" y="122" textLength="128" lengthAdjust="spacingAndGlyphs">Algorithm Registry</text><text class="node-sub" x="1133" y="143">BFS · DFS · UCS · A*</text><text class="node-code" x="1133" y="160">Greedy · IDA*</text>
+          <rect class="node node-green" x="1290" y="94" width="145" height="78"/><line class="rail-green" x1="1290" y1="94" x2="1290" y2="172"/><text class="node-title" x="1308" y="122">TrafficGraph</text><text class="node-sub" x="1308" y="143" textLength="105" lengthAdjust="spacingAndGlyphs">DiGraph + neighbors</text><text class="node-code" x="1308" y="160">NetworkX</text>
+          <rect class="node node-green" x="1115" y="205" width="300" height="78"/><line class="rail-green" x1="1115" y1="205" x2="1115" y2="283"/><text class="node-title" x="1133" y="233">CostCalculator + CostProfiles</text><text class="node-sub" x="1133" y="254">distance · time · congestion · risk</text><text class="node-code" x="1133" y="271">balanced / shortest / fastest / avoid</text>
+          <path class="cylinder" d="M1115 330 C1115 316 1415 316 1415 330 L1415 392 C1415 406 1115 406 1115 392 Z"/><path d="M1115 330 C1115 344 1415 344 1415 330" fill="none" stroke="#111" stroke-width="1.5"/><text class="node-title" x="1265" y="360" text-anchor="middle">Validated Traffic Graph Dataset</text><text class="node-code" x="1265" y="380" text-anchor="middle">graph nodes · directed edges · traffic scenarios</text>
+
+          <path class="edge-hot" d="M195 381 H250"/>
+          <path class="edge-hot" d="M385 172 V205"/><path class="edge-hot" d="M385 283 V316"/>
+          <path class="edge-hot" d="M490 133 H570"/><text class="edge-label" x="530" y="123" text-anchor="middle">fetch JSON</text>
+          <path class="edge-hot" d="M735 220 H790 V80 H1080 V120 H1115"/><text class="edge-label" x="770" y="211" text-anchor="middle">search</text>
+          <path class="edge-hot" d="M735 244 H815"/><text class="edge-label" x="770" y="234" text-anchor="middle">tsp</text>
+          <path class="edge-hot" d="M735 268 H780 V133 H815"/><text class="edge-label" x="770" y="282" text-anchor="middle">metrics</text>
+          <path class="edge" d="M652 283 V316"/><text class="edge-label" x="664" y="305">validate</text>
+
+          <path class="edge" d="M1040 133 H1115"/>
+          <path class="edge" d="M1270 133 H1290"/><path class="edge" d="M1352 172 V205"/><path class="edge" d="M1190 172 H1080 V345 H1040"/><text class="edge-label" x="1065" y="335" text-anchor="middle">explain</text><path class="edge" d="M930 283 V300 H790 V355 H815"/><path class="edge" d="M1415 360 H1435 V190 H1385 V172"/>
+          <path class="edge-hot" d="M1040 355 H1060 V448 H520 V355 H490"/><text class="edge-label" x="790" y="438" text-anchor="middle">result + trace</text>
+          <path class="edge-async" d="M922 510 H1080 V360 H1115"/><text class="edge-label" x="1000" y="498" text-anchor="middle">offline source prep</text>
+          <path class="cloud" d="M420 510 C420 482 449 472 472 485 C481 458 527 459 536 487 C569 477 591 503 582 528 H442 C427 528 420 520 420 510 Z"/><text class="node-title" x="506" y="508" text-anchor="middle">Goong Tiles</text><text class="node-code" x="506" y="523" text-anchor="middle">Map style + tiles</text>
+          <path class="edge-async" d="M506 458 V244 H490"/>
+          <path class="cloud" d="M760 510 C760 482 789 472 812 485 C821 458 867 459 876 487 C909 477 931 503 922 528 H782 C767 528 760 520 760 510 Z"/><text class="node-title" x="846" y="508" text-anchor="middle">Goong Places REST</text><text class="node-code" x="846" y="523" text-anchor="middle">collector only</text>
+        </svg>
+      </div>
+      <div class="legend" aria-label="Color and connector legend">
+        <span><i class="swatch sw-blue"></i>Frontend / hot path</span><span><i class="swatch sw-cyan"></i>API boundary</span><span><i class="swatch sw-amber"></i>Application service</span><span><i class="swatch sw-violet"></i>Algorithms</span><span><i class="swatch sw-green"></i>Core / data</span><span><i class="swatch sw-orange"></i>External / offline</span><span>→ synchronous</span><span>- - → offline / external</span></div>
+    </section>
+
+    <section class="section" id="flows">
+      <div class="section-head"><h2>02 / Main runtime processing flows</h2><p class="section-note">Each flow follows one GUI action through the Flask API and backend processing until the browser renders the result.</p></div>
+      <div class="flow-panel" id="flow-search" role="group" aria-labelledby="flow-search-title"><h3 class="flow-figure-title" id="flow-search-title">Figure 6.2 — Two-point Route Search</h3>
+        <div class="diagram-frame compact"><svg viewBox="0 0 1240 300" aria-label="Two-point route search"><defs><marker markerUnits="userSpaceOnUse" id="s-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#1769f9"/></marker></defs>
+          <path class="edge-hot" d="M180 150 H225" marker-end="url(#s-arrow)"/><path class="edge-hot" d="M390 150 H435" marker-end="url(#s-arrow)"/><path class="edge-hot" d="M600 150 H645" marker-end="url(#s-arrow)"/><path class="edge-hot" d="M810 150 H855" marker-end="url(#s-arrow)"/><path class="edge-hot" d="M1020 150 H1065" marker-end="url(#s-arrow)"/>
+          <rect class="node node-blue" x="20" y="101" width="160" height="98"/><text class="node-title" x="100" y="130" text-anchor="middle">1 · GUI input</text><text class="node-sub" x="100" y="151" text-anchor="middle">start / end / algorithm</text><text class="node-code" x="100" y="174" text-anchor="middle">clearSearchResults()</text>
+          <rect class="node node-cyan" x="225" y="101" width="165" height="98"/><text class="node-title" x="307" y="130" text-anchor="middle">2 · POST /api/search</text><text class="node-sub" x="307" y="151" text-anchor="middle">profile + scenario</text><text class="node-code" x="307" y="174" text-anchor="middle">400 on invalid input</text>
+          <rect class="node node-green" x="435" y="101" width="165" height="98"/><text class="node-title" x="517" y="130" text-anchor="middle">3 · Validate + load graph</text><text class="node-sub" x="517" y="151" text-anchor="middle">scenario-specific TrafficGraph</text><text class="node-code" x="517" y="174" text-anchor="middle">cached graph variant</text>
+          <rect class="node node-violet" x="645" y="101" width="165" height="98"/><text class="node-title" x="727" y="130" text-anchor="middle">4 · Execute search</text><text class="node-sub" x="727" y="151" text-anchor="middle">ALGORITHM_REGISTRY</text><text class="node-code" x="727" y="174" text-anchor="middle">frontier trace</text>
+          <rect class="node node-amber" x="855" y="101" width="165" height="98"/><text class="node-title" x="937" y="130" text-anchor="middle">5 · Explain + serialize</text><text class="node-sub" x="937" y="151" text-anchor="middle">guarantee · alternative</text><text class="node-code" x="937" y="174" text-anchor="middle">high-impact edges</text>
+          <rect class="node node-blue" x="1065" y="101" width="155" height="98"/><text class="node-title" x="1142" y="130" text-anchor="middle">6 · Animate + review</text><text class="node-sub" x="1142" y="151" text-anchor="middle">frontier · processing · visited</text><text class="node-code" x="1142" y="174" text-anchor="middle">route review</text>
+          <text class="edge-label" x="180" y="135" text-anchor="start">submit</text><text class="edge-label" x="390" y="135" text-anchor="start">validate</text><text class="edge-label" x="600" y="135" text-anchor="start">graph</text><text class="edge-label" x="810" y="135" text-anchor="start">result</text><text class="edge-label" x="1020" y="135" text-anchor="start">JSON</text>
+        </svg></div>
+      </div>
+      <div class="flow-panel" id="flow-tsp" role="group" aria-labelledby="flow-tsp-title"><h3 class="flow-figure-title" id="flow-tsp-title">Figure 6.3 — Multi-location / TSP Flow</h3>
+        <div class="diagram-frame compact"><svg viewBox="0 0 1430 285" aria-label="Multi-location TSP flow"><defs><marker markerUnits="userSpaceOnUse" id="t-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#374151"/></marker></defs>
+          <path class="edge" d="M155 140 H195" marker-end="url(#t-arrow)"/><path class="edge" d="M330 140 H370" marker-end="url(#t-arrow)"/><path class="edge" d="M505 140 H545" marker-end="url(#t-arrow)"/><path class="edge" d="M680 140 H720" marker-end="url(#t-arrow)"/><path class="edge" d="M855 140 H895" marker-end="url(#t-arrow)"/><path class="edge" d="M1030 140 H1070" marker-end="url(#t-arrow)"/><path class="edge" d="M1205 140 H1245" marker-end="url(#t-arrow)"/>
+          <rect class="node node-blue" x="20" y="96" width="135" height="88"/><text class="node-title" x="92" y="121" text-anchor="middle">1 · TSP queue</text><text class="node-sub" x="92" y="141" text-anchor="middle">start + waypoints</text><text class="node-code" x="92" y="162" text-anchor="middle">auto / ordered</text>
+          <rect class="node node-cyan" x="195" y="96" width="135" height="88"/><text class="node-title" x="267" y="121" text-anchor="middle">2 · POST /api/tsp</text><text class="node-sub" x="267" y="141" text-anchor="middle">order_mode + profile</text><text class="node-code" x="267" y="162" text-anchor="middle">requires 2+ stops</text>
+          <rect class="node node-green" x="370" y="96" width="135" height="88"/><text class="node-title" x="442" y="121" text-anchor="middle">3 · Validate + load</text><text class="node-sub" x="442" y="141" text-anchor="middle">scenario graph</text><text class="node-code" x="442" y="162" text-anchor="middle">cached variant</text>
+          <rect class="node node-amber" x="545" y="96" width="135" height="88"/><text class="node-title" x="617" y="121" text-anchor="middle">4 · Pairwise A*</text><text class="node-sub" x="617" y="141" text-anchor="middle">one search per pair</text><text class="node-code" x="617" y="162" text-anchor="middle">cost · path · time</text>
+          <rect class="node node-violet" x="720" y="96" width="135" height="88"/><text class="node-title" x="792" y="121" text-anchor="middle">5 · Order decision</text><text class="node-sub" x="792" y="141" text-anchor="middle">nearest neighbor</text><text class="node-code" x="792" y="162" text-anchor="middle">ordered: keep queue</text>
+          <rect class="node node-green" x="895" y="96" width="135" height="88"/><text class="node-title" x="967" y="121" text-anchor="middle">6 · Stitch segments</text><text class="node-sub" x="967" y="141" text-anchor="middle">build the full path</text><text class="node-code" x="967" y="162" text-anchor="middle">unvisited_left</text>
+          <rect class="node node-amber" x="1070" y="96" width="135" height="88"/><text class="node-title" x="1142" y="121" text-anchor="middle">7 · Explain + JSON</text><text class="node-sub" x="1142" y="141" text-anchor="middle">order + stats</text><text class="node-code" x="1142" y="162" text-anchor="middle">serialize response</text>
+          <rect class="node node-blue" x="1245" y="96" width="150" height="88"/><text class="node-title" x="1320" y="121" text-anchor="middle">8 · Animate + review</text><text class="node-sub" x="1320" y="141" text-anchor="middle">synthesized animation</text><text class="node-code" x="1320" y="162" text-anchor="middle">route review</text>
+          <text class="edge-label" x="155" y="135" text-anchor="start">submit</text><text class="edge-label" x="330" y="135" text-anchor="start">validate</text><text class="edge-label" x="505" y="135" text-anchor="start">graph</text><text class="edge-label" x="680" y="135" text-anchor="start">pairwise</text><text class="edge-label" x="855" y="135" text-anchor="start">order</text><text class="edge-label" x="1030" y="135" text-anchor="start">segments</text><text class="edge-label" x="1205" y="135" text-anchor="start">JSON</text>
+        </svg></div>
+      </div>
+      <div class="flow-panel" id="flow-metrics" role="group" aria-labelledby="flow-metrics-title"><h3 class="flow-figure-title" id="flow-metrics-title">Figure 6.4 — Algorithm Comparison Metrics Flow</h3>
+        <div class="diagram-frame compact"><svg viewBox="0 0 1430 285" aria-label="Algorithm comparison flow"><defs><marker markerUnits="userSpaceOnUse" id="m-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#1769f9"/></marker></defs>
+          <path class="edge-hot" d="M170 140 H210" marker-end="url(#m-arrow)"/><path class="edge-hot" d="M360 140 H400" marker-end="url(#m-arrow)"/><path class="edge" d="M550 140 H590" marker-end="url(#arrow)"/><path class="edge-hot" d="M740 140 H780" marker-end="url(#m-arrow)"/><path class="edge" d="M930 140 H970" marker-end="url(#arrow)"/><path class="edge-hot" d="M1120 140 H1160" marker-end="url(#m-arrow)"/>
+          <rect class="node node-blue" x="20" y="96" width="150" height="88"/><text class="node-title" x="100" y="121" text-anchor="middle">1 · Compare input</text><text class="node-sub" x="100" y="141" text-anchor="middle">start + end + profile</text><text class="node-code" x="100" y="162" text-anchor="middle">scenario included</text>
+          <rect class="node node-cyan" x="210" y="96" width="150" height="88"/><text class="node-title" x="290" y="121" text-anchor="middle">2 · POST /api/metrics</text><text class="node-sub" x="290" y="141" text-anchor="middle">request context</text><text class="node-code" x="290" y="162" text-anchor="middle">JSON payload</text>
+          <rect class="node node-green" x="400" y="96" width="150" height="88"/><text class="node-title" x="480" y="121" text-anchor="middle">3 · Validate + load</text><text class="node-sub" x="480" y="141" text-anchor="middle">scenario graph</text><text class="node-code" x="480" y="162" text-anchor="middle">cached variant</text>
+          <rect class="node node-amber" x="590" y="96" width="150" height="88"/><text class="node-title" x="670" y="121" text-anchor="middle">4 · MetricsService</text><text class="node-sub" x="670" y="141" text-anchor="middle">orchestrate same inputs</text><text class="node-code" x="670" y="162" text-anchor="middle">registered algorithm loop</text>
+          <rect class="node node-violet" x="780" y="96" width="150" height="88"/><text class="node-title" x="860" y="121" text-anchor="middle">5 · Algorithm Registry</text><text class="node-sub" x="860" y="141" text-anchor="middle">BFS · DFS · UCS · A*</text><text class="node-code" x="860" y="162" text-anchor="middle">Greedy · IDA* execution</text>
+          <rect class="node node-amber" x="970" y="96" width="150" height="88"/><text class="node-title" x="1050" y="121" text-anchor="middle">6 · Explain + format</text><text class="node-sub" x="1050" y="141" text-anchor="middle">per-algorithm rows</text><text class="node-code" x="1050" y="162" text-anchor="middle">path + trace + stats</text>
+          <rect class="node node-blue" x="1160" y="96" width="220" height="88"/><text class="node-title" x="1270" y="121" text-anchor="middle">7 · Compare Drawer</text><text class="node-sub" x="1270" y="141" text-anchor="middle">click / Enter / Space</text><text class="node-code" x="1270" y="162" text-anchor="middle">map reset + highlight</text>
+          <text class="edge-label" x="170" y="135" text-anchor="start">submit</text><text class="edge-label" x="360" y="135" text-anchor="start">validate</text><text class="edge-label" x="550" y="135" text-anchor="start">graph</text><text class="edge-label" x="740" y="135" text-anchor="start">loop</text><text class="edge-label" x="930" y="135" text-anchor="start">metrics</text><text class="edge-label" x="1120" y="135" text-anchor="start">JSON</text>
+        </svg></div>
+      </div></section>
+
+    <section class="section" id="modules">
+      <div class="section-head"><h2>03 / Module map &amp; function ownership</h2><p class="section-note">This table maps concrete files and functions to the program-structure requirement.</p></div>
+      <div class="card">
+        <table class="module-table">
+          <thead><tr><th>Boundary</th><th>File / module</th><th>Primary responsibility</th><th>Contract / key functions</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill pill-blue">UI</span></td><td><code>frontend/index.html<br>frontend/styles.css<br>frontend/app.js</code></td><td>Input, map layers, animation, drawers, route review, compare selection.</td><td><code>initMap()</code>, <code>loadGraph()</code>, <code>startAnimation()</code>, <code>renderMetrics()</code>, <code>showResults()</code></td></tr>
+            <tr><td><span class="pill pill-cyan">API</span></td><td><code>backend/app/api/main.py</code></td><td>Flask routes, request validation, scenario/profile resolution, JSON serialization.</td><td><code>/api/config</code>, <code>/api/graph</code>, <code>/api/search</code>, <code>/api/tsp</code>, <code>/api/metrics</code></td></tr>
+            <tr><td><span class="pill pill-amber">Service</span></td><td><code>route_explanation_service.py<br>multi_location_service.py<br>metrics_service.py</code></td><td>Explanations, benchmarking, pairwise route matrices, and multi-stop route stitching.</td><td><code>explain_search()</code>, <code>optimize_delivery_route()</code>, <code>compare_algorithms()</code></td></tr>
+            <tr><td><span class="pill pill-amber">Facade</span></td><td><code>route_search_service.py</code></td><td>Reusable framework-independent single-route facade; not called by the current Flask hot path.</td><td><code>RouteSearchService.search()</code> → <code>ALGORITHM_REGISTRY</code></td></tr>
+            <tr><td><span class="pill pill-violet">Algorithm</span></td><td><code>backend/app/algorithms/</code></td><td>Search algorithms are Flask-independent; all return the shared <code>SearchResult</code>.</td><td><code>ALGORITHM_REGISTRY</code>, BFS, DFS, UCS, A*, Greedy Best-First, IDA*</td></tr>
+            <tr><td><span class="pill pill-green">Core</span></td><td><code>graph.py<br>models.py<br>cost.py<br>search_models.py</code></td><td>Node/edge models, directed graph, traversability, cost, traces, and metrics.</td><td><code>TrafficGraph</code>, <code>RoadEdge</code>, <code>CostCalculator</code>, <code>SearchTraceStep</code></td></tr>
+            <tr><td><span class="pill pill-green">Repository</span></td><td><code>clean_dataset_repository.py</code></td><td>Read JS arrays, validate dataclasses, apply scenarios, and cache graph variants.</td><td><code>load_clean_graph(scenario)</code>, <code>_apply_scenario()</code></td></tr>
+            <tr><td><span class="pill pill-orange">Offline</span></td><td><code>services/food_places.py</code><br><code>food_search_terms.json</code></td><td>Goong Places collector with retries, polygon filtering, and checkpoints; outside the GUI hot path.</td><td><code>AutoComplete</code>, <code>Place/Detail</code>, output food dataset</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+        <section class="section" id="gui-sequence">
+      <div class="section-head"><h2>GUI interaction with search algorithms</h2><p class="section-note">The sequence follows one user action from the browser through Flask orchestration and algorithm execution to the rendered result.</p></div>
+      <figure class="sequence-frame">
+        <figcaption class="sequence-title">Figure 6.5 — GUI/API/Algorithm Sequence</figcaption>
+        <svg viewBox="0 0 1800 980" aria-label="GUI API and algorithm sequence diagram">
+          <defs>
+            <marker id="seq-arrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#374151"/></marker>
+            <marker id="seq-arrow-hot" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#1769f9"/></marker>
+            <marker id="seq-arrow-return" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#6b7280"/></marker>
+          </defs>
+          <rect class="seq-lane" x="24.0" y="78" width="190" height="860"/><rect class="seq-lane" x="243.6" y="78" width="238" height="860"/><rect class="seq-lane" x="511.2" y="78" width="238" height="860"/><rect class="seq-lane" x="778.8" y="78" width="190" height="860"/><rect class="seq-lane" x="998.4" y="78" width="190" height="860"/><rect class="seq-lane" x="1218.0" y="78" width="190" height="860"/><rect class="seq-lane" x="1437.6" y="78" width="310" height="860"/>
+          <rect class="node node-blue seq-head" x="36.2" y="28" width="170" height="42"/><text class="node-title" x="121.6" y="54" text-anchor="middle">User</text>
+          <rect class="node node-blue seq-head" x="255.8" y="28" width="218" height="42"/><text class="node-title" x="365.2" y="54" text-anchor="middle">GUI / app.js</text>
+          <rect class="node node-cyan seq-head" x="523.4" y="28" width="218" height="42"/><text class="node-title" x="632.4" y="54" text-anchor="middle">Flask API</text>
+          <rect class="node node-green seq-head" x="791.0" y="28" width="170" height="42"/><text class="node-title" x="876.4" y="54" text-anchor="middle">Graph Repository</text>
+          <rect class="node node-amber seq-head" x="1010.6" y="28" width="170" height="42"/><text class="node-title" x="1096.0" y="54" text-anchor="middle">Application Services</text>
+          <rect class="node node-violet seq-head" x="1230.2" y="28" width="170" height="42"/><text class="node-title" x="1315.6" y="54" text-anchor="middle">Algorithm Registry</text>
+          <rect class="node node-amber seq-head" x="1449.8" y="28" width="290" height="42"/><text class="node-title" x="1596.2" y="54" text-anchor="middle">Explanation + Serialization</text>
+          <path class="seq-life" d="M121.6 70 V958"/><path class="seq-life" d="M365.2 70 V958"/><path class="seq-life" d="M632.4 70 V958"/><path class="seq-life" d="M876.4 70 V958"/><path class="seq-life" d="M1096.0 70 V958"/><path class="seq-life" d="M1315.6 70 V958"/><path class="seq-life" d="M1596.2 70 V958"/>
+          <rect class="seq-activation" x="355.4" y="164" width="16" height="760"/><rect class="seq-activation" x="624.4" y="222" width="16" height="610"/><rect class="seq-activation" x="866.6" y="246" width="16" height="50"/><rect class="seq-activation" x="1086.2" y="450" width="16" height="78"/><rect class="seq-activation" x="1086.2" y="590" width="16" height="78"/><rect class="seq-activation" x="1305.8" y="370" width="16" height="18"/><rect class="seq-activation" x="1305.8" y="480" width="16" height="20"/><rect class="seq-activation" x="1305.8" y="620" width="16" height="20"/><rect class="seq-activation" x="1586.4" y="730" width="16" height="55"/>
+          <path class="seq-msg-hot" d="M121.6 116 H355.4"/><text class="seq-label" x="131.4" y="108">select endpoints + mode + profile + algorithm</text>
+          <path class="seq-msg" d="M365.2 148 H399.4 V178 H365.2"/><text class="seq-label" x="409.1" y="166">clear results + increment generation</text>
+          <path class="seq-msg-hot" d="M365.2 206 H624.4"/><text class="seq-label" x="375.0" y="198">POST /api/search | /api/tsp | /api/metrics</text><path class="seq-msg" d="M632.4 222 H643.0 V238 H632.4"/><text class="seq-label" x="652.7" y="220">validate payload + resolve context</text>
+          <path class="seq-msg" d="M632.4 252 H866.6"/><text class="seq-label" x="642.4" y="244">load_clean_graph(scenario)</text>
+          <path class="seq-return" d="M886.2 288 H632.4"/><text class="seq-label" x="669.8" y="280">TrafficGraph</text>
+          <rect class="seq-alt" x="533.2" y="306" width="1128" height="390"/><text class="seq-alt-label" x="550.2" y="324">alt endpoint workflow</text>
+          <path class="seq-alt" d="M533.2 400 H1654.8"/><path class="seq-alt" d="M533.2 540 H1654.8"/>
+          <text class="seq-alt-label" x="550.2" y="346">[POST /api/search]</text>
+          <path class="seq-msg-hot" d="M632.4 370 H1305.8"/><text class="seq-label" x="749.5" y="362">execute selected algorithm</text>
+          <path class="seq-return" d="M1325.4 388 H632.4"/><text class="seq-label" x="883.7" y="378">SearchResult</text>
+          <text class="seq-alt-label" x="550.2" y="426">[POST /api/tsp]</text>
+          <path class="seq-msg" d="M632.4 450 H1086.2"/><text class="seq-label" x="749.5" y="442">optimize_delivery_route()</text>
+          <path class="seq-msg" d="M1105.8 480 H1140 V510 H1105.8"/><text class="seq-label" x="1122.8" y="472">loop: direct A* segment searches</text>
+          <path class="seq-return" d="M1086.2 528 H632.4"/><text class="seq-label" x="883.7" y="520">multi-location result</text>
+          <text class="seq-alt-label" x="550.2" y="566">[POST /api/metrics]</text>
+          <path class="seq-msg" d="M632.4 590 H1086.2"/><text class="seq-label" x="749.5" y="582">compare_algorithms()</text>
+          <path class="seq-msg" d="M1105.8 620 H1305.8"/><text class="seq-label" x="1122.8" y="612">loop: registered algorithms</text>
+          <path class="seq-return" d="M1325.4 640 H1105.8"/><text class="seq-label" x="1122.8" y="632">algorithm results</text>
+          <path class="seq-return" d="M1086.2 678 H632.4"/><text class="seq-label" x="883.7" y="670">metrics response</text>
+          <path class="seq-msg" d="M632.4 730 H1586.4"/><text class="seq-label" x="944.7" y="722">build explanation + serialize</text>
+          <path class="seq-return" d="M1606.0 768 H632.4"/><text class="seq-label" x="1005.7" y="760">JSON response</text>
+          <path class="seq-return" d="M624.4 808 H375.0"/><text class="seq-label" x="363.2" y="792">HTTP 200 + endpoint-specific JSON</text>
+          <path class="seq-msg" d="M365.2 830 H399.4 V856 H365.2"/><text class="seq-label" x="409.1" y="848">verify current searchGeneration</text>
+          <path class="seq-msg" d="M365.2 880 H399.4 V906 H365.2"/><text class="seq-label" x="409.1" y="898">render route, trace, stats, and drawer</text>
+          <path class="seq-msg-hot" d="M355.4 920 H121.6"/><text class="seq-label" x="131.4" y="912">display interactive result</text>
+        </svg>
+      </figure>
+    </section>
+<section class="section" id="contract">
+      <div class="section-head"><h2>04 / GUI ↔ API contract</h2><p class="section-note">Each card maps a user action to its final map or panel effect.</p></div>
+      <div class="mapping-grid">
+        <article class="mapping-card"><h3><span class="pill pill-blue">Start Search</span></h3><p>Run a two-point route or switch to TSP.</p><ul><li><code>POST /api/search</code> or <code>/api/tsp</code></li><li>Receive <code>animation_log</code>, <code>path</code>, stats, and explanation</li><li>Right Drawer opens after animation</li></ul></article>
+        <article class="mapping-card"><h3><span class="pill pill-cyan">Compare</span></h3><p>Benchmark the same start/end/profile/scenario.</p><ul><li><code>2 · POST /api/metrics</code></li><li>MetricsService runs 6 algorithms</li><li>Bottom Drawer opens; Right Drawer collapses</li></ul></article>
+        <article class="mapping-card"><h3><span class="pill pill-amber">Scenario change</span></h3><p>Change baseline traffic without mutating the source dataset.</p><ul><li><code>GET /api/graph?scenario=...</code></li><li>Graph layers are re-rendered</li><li>Previous results and animation are cleared</li></ul></article>
+        <article class="mapping-card"><h3><span class="pill pill-violet">7 · Explain + review</span></h3><p>Inspect every edge in the final path.</p><ul><li>Select a step by click, keyboard, or arrow keys</li><li>FROM → TO, distance, time, congestion, risk</li><li>The active edge uses a cyan highlight</li></ul></article>
+        <article class="mapping-card"><h3><span class="pill pill-green">1 · TSP queue</span></h3><p>Select waypoints automatically or reorder them manually.</p><ul><li>Automatic mode locks drag-and-drop</li><li>Ordered mode allows reordering</li><li>Start is never duplicated in the queue</li></ul></article>
+        <article class="mapping-card"><h3><span class="pill pill-orange">Failure path</span></h3><p>Keep the UI stable when a request or route fails.</p><ul><li>HTTP 400 → alert/error message</li><li>No route → explanation status</li><li><code>searchGeneration</code> blocks stale responses</li></ul></article>
+      </div>
+    </section>
+
+    <section class="section" id="cost-data">
+      <div class="section-head"><h2>05 / Cost, graph &amp; traffic scenario</h2><p class="section-note">This inset explains why the result is not simply the shortest distance route.</p></div>
+      <div class="two-col">
+        <article class="card"><div class="card-head"><h3>Traffic-aware edge cost</h3></div><div class="card-body"><div class="formula">cost = α·distance + β·time + γ·congestion_delay + δ·risk_exposure</div><div class="formula-detail"><div><strong>Distance</strong><span>distance_km / MAX_DISTANCE_KM</span></div><div><strong>Time</strong><span>base_time_min / MAX_TIME_MIN</span></div><div><strong>Congestion</strong><span>actual time − base time; multiplier level 1–5</span></div><div><strong>Risk</strong><span>normalized distance × risk_factor / 5</span></div><div><strong>Profiles</strong><span>balanced · shortest_distance · fastest_route · avoid_congestion</span></div></div></div></article>
+        <article class="card"><div class="card-head"><h3>Graph data transformation</h3></div><div class="card-body"><div class="formula">clean JS arrays → dataclass validation → scenario variant → NetworkX DiGraph</div><div class="formula-detail"><div><strong>Node</strong><span>id, name, type, latitude, longitude, metadata</span></div><div><strong>Edge</strong><span>source, target, distance, time, congestion, road_type, risk</span></div><div><strong>Direction</strong><span>only traverse outgoing neighbors; never infer reverse edges</span></div><div><strong>Scenario</strong><span>rush_hour raises congestion; rainy_day raises congestion and risk</span></div><div><strong>Cache</strong><span>graph variants are keyed by scenario; the baseline dataset is not mutated</span></div></div></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="evidence">
+      <div class="section-head"><h2>06 / Evidence snapshot</h2><p class="section-note">These values come from the current source/tests and size the nodes and content in this diagram.</p></div>
+      <div class="evidence"><div class="evidence-card"><strong>98</strong><span>graph nodes</span></div><div class="evidence-card"><strong>176</strong><span>directed edge records</span></div><div class="evidence-card"><strong>6</strong><span>single-route algorithms in registry</span></div><div class="evidence-card"><strong>3</strong><span>runtime traffic scenarios</span></div></div>
+      <div class="notes" style="margin-top:12px"><div class="note"><strong>Important report note</strong>UCS, A*, and IDA* optimize traffic-aware cost; BFS/DFS/Greedy have different guarantees. Nearest Neighbor only approximates TSP order.</div><div class="note"><strong>Boundary external</strong>Goong Tiles is called directly by the browser with the Map Tiles key. Goong Places REST serves only the offline collector; the REST key is never sent to the frontend.</div></div>
+    </section>
+
+    <footer><span>Traffic Route Optimization · Lab 01 · System Architecture</span><span>Updated: 16.08.2026 · Self-contained artifact, no build step required</span></footer>
+  </main>
+</body>
+</html>
+

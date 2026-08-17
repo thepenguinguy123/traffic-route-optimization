@@ -1,0 +1,138 @@
+# Traffic Route Optimization
+
+Ứng dụng mô phỏng tối ưu tuyến giao thông trên bản đồ Goong, kết hợp graph core, hoạt ảnh tìm kiếm và dữ liệu địa điểm ăn uống trong khu vực giới hạn.
+
+## Kiến trúc
+
+- `backend/`: Flask API, graph core, các thuật toán BFS, DFS, UCS, A*, Greedy Best-First, IDA* và TSP.
+- `backend/data/`: dữ liệu node/edge và bộ từ khóa địa phương hóa; graph loader đọc trực tiếp `nodes_clean.js` và `edges_clean.js`.
+- `backend/data/traffic_scenarios.json`: cấu hình ba traffic scenario dùng cho bước tích hợp scenario runtime.
+- `backend/app/repositories/`: lớp đọc và chuẩn hóa dataset.
+- `backend/app/services/`: route search, metrics, TSP và collector Goong Places.
+- `frontend/`: HTML/CSS/JavaScript thuần, Goong GL JS, không dùng framework build.
+- `LAB01_COMPLIANCE.md`: ??i chi?u source v?i y?u c?u Lab 01.
+
+## Cài đặt
+
+Từ thư mục gốc trên Windows:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -r backend\requirements.txt
+```
+
+Tạo file `.env` ở thư mục gốc, dựa trên `.env.example`:
+
+```env
+GOONG_MAP_TILES_KEY=your_map_tiles_key
+GOONG_REST_API_KEY=your_rest_api_key
+CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+```
+
+Không commit `.env` hoặc bất kỳ API key nào.
+
+## Chạy ứng dụng
+
+Cửa sổ 1 — backend:
+
+```powershell
+cd backend
+python main.py
+```
+
+Cửa sổ 2 — frontend:
+
+```powershell
+cd frontend
+python -m http.server 8080
+```
+
+Mở `http://localhost:8080`. Backend mặc định chạy ở `http://localhost:8000`.
+
+## API chính
+
+- `GET /api/graph`, `/api/nodes`, `/api/algorithms`, `/api/cost-profiles`.
+- `GET /api/config`, `/api/food-places`, `/api/traffic-scenarios`.
+- `POST /api/search` tìm tuyến hai điểm.
+- `POST /api/tsp` tìm tuyến nhiều waypoint.
+- `POST /api/metrics` so sánh các thuật toán.
+- Search, metrics và TSP trả về `explanation_details`; frontend hiển thị tiêu chí, bảo đảm thuật toán, visiting order, alternative và các edge có congestion/risk cao.
+
+## Collector dữ liệu Goong
+
+Collector chỉ phục vụ cào dữ liệu, không phải runtime bắt buộc của frontend. Chạy từ `backend`:
+
+```powershell
+python -m app.services.food_places --step 0.004 --radius 0.7 --limit 20 --delay 5 --chunks 8 --max-per-chunk 10 --max-detail-per-chunk 40
+```
+
+Kết quả checkpoint nằm trong `backend/data/food_places.json` và bị loại khỏi Git. Từ khóa truy vấn được cấu hình trong `backend/data/food_search_terms.json`; code collector chỉ chứa logic tiếng Anh. Vùng lọc là tứ giác trong `backend/app/core/food_area.py`:
+
+```text
+(10.79185, 106.69584)
+(10.78495, 106.68911)
+(10.77959, 106.69498)
+(10.78659, 106.70156)
+
+```
+
+Edge dataset hiện dùng traffic baseline hybrid deterministic: congestion và risk được phân bố theo `road_type` để phục vụ đánh giá thuật toán. Ba scenario `normal`, `rush_hour` và `rainy_day` được khai báo trong `backend/data/traffic_scenarios.json`; Các endpoint search, metrics và TSP nhận thêm trường `scenario`; mặc định là `normal`.
+
+## Hành vi giao diện
+
+- Start và End được đánh dấu bằng marker nhiều vòng với nhãn `S` và `E`.
+- Waypoint TSP nằm trong queue riêng, không bao gồm Start; số thứ tự được hiển thị phía trên node.
+- Sau khi thay đổi thuật toán, Start/End, waypoint, queue, mode hoặc cost profile, kết quả cũ được xóa. Thay đổi traffic scenario cũng xóa kết quả và áp dụng scenario cho lần chạy kế tiếp.
+- Route Review mở ở Right Panel. Animation graph search dùng frontier snapshot và trạng thái visited riêng. Compare Algorithms mở ở Bottom Panel; khi một panel mở, panel còn lại tự động thu gọn.
+- Right Panel có thể kéo rộng/hẹp; Bottom Panel có thể kéo thay đổi chiều cao và cuộn nội dung.
+- Mỗi step trong Route Review tách tuyến `FROM`/`TO`, khoảng cách, thời gian, congestion, risk và hướng cạnh thành các trường riêng.
+- Có thể click hoặc chọn bằng bàn phím một row trong bảng compare để xem node đã duyệt và final route của thuật toán đó trên map.
+- Tuyến kết quả dùng màu primary `#1769f9`; step đang xem dùng cyan sáng `#22d3ee`; node đã duyệt dùng xanh lá.
+
+## Quy ước ngôn ngữ và dữ liệu
+
+- Toàn bộ source thực thi (`.py`, `.js`, `.html`, `.css`) dùng tiếng Anh và ASCII để tránh lỗi encoding.
+- Tài liệu dự án viết bằng tiếng Việt theo `AGENTS.md`.
+- Tên địa điểm, địa chỉ và từ khóa tìm kiếm được xem là dữ liệu miền nên giữ Unicode tiếng Việt trong `backend/data/`.
+
+## Kiểm tra trước khi push
+
+```powershell
+python -m black --check backend
+python -m compileall -q backend
+node --check frontend\app.js
+python -m pytest backend\tests -q -p no:cacheprovider --basetemp=.pytest-tmp\test-run
+```
+
+Bộ test hiện có gồm 25 trường hợp. Kiểm tra thêm thủ công các endpoint `/api/graph`, `/api/config`, `/api/food-places` khi backend đang chạy.
+
+## M? h?nh cost v? traffic scenario
+
+Cost c?a m?i edge l? t?ng c? tr?ng s? c?a b?n th?nh ph?n ?? chu?n h?a:
+
+- Kho?ng c?ch c? s?.
+- Th?i gian c? s?.
+- ?? tr? ph?t sinh do congestion.
+- M?c ph?i nhi?m r?i ro theo kho?ng c?ch.
+
+Congestion ???c d?ng ?? t?nh th?i gian di chuy?n th?c t? v? ph?n ?? tr?; c?ng th?c kh?ng c?ng l?p c?ng m?t penalty. C?c profile `shortest_distance` v? `fastest_route` ch? ?u ti?n m?nh t??ng ?ng kho?ng c?ch ho?c th?i gian, ??ng th?i v?n gi? penalty giao th?ng v? r?i ro. V? v?y ch?ng kh?ng ph?i c?c m?c ti?u ??n bi?n tuy?t ??i.
+
+`MAX_DISTANCE_KM` v? `MAX_TIME_MIN` l? reference scale ???c hi?u chu?n offline t? ph?n v? P95 c?a dataset. Ch?y ki?m tra hi?u chu?n t? th? m?c `backend`:
+
+```powershell
+python -m scripts.calibrate_cost_scales
+```
+
+?? audit tr?c ti?p c?c edge c? th? ?i ???c v? nh?n ?? xu?t ng??ng l?m tr?n ?n ??nh, ch?y t? th? m?c g?c:
+
+```powershell
+python backend/scripts/calibrate_normalization.py
+```
+
+Script n?y ch? in khuy?n ngh? v? kh?ng t? s?a `backend/app/core/cost.py`. V?i dataset hi?n t?i, script ?? xu?t `MAX_DISTANCE_KM = 0.25` v? `MAX_TIME_MIN = 0.6` d?a tr?n P95 c?a distance v? base time, sau khi l?m tr?n l?n b??c th?c d?ng. Congestion ???c t?nh ri?ng b?ng congestion delay trong cost runtime.
+
+Traffic scenario ch? thay ??i thu?c t?nh runtime c?a edge; cost profile v?n bi?u di?n ?u ti?n c?a ng??i d?ng. Graph endpoint nh?n scenario qua query string, v? d? `/api/graph?scenario=rush_hour`. M?u congestion/risk d?ng n?m m?c: level 1 xanh l?, level 2 xanh ??t chu?i, level 3 v?ng, level 4 cam v? level 5 ??.
+
+Dataset traffic l? baseline synthetic deterministic ph?c v? ??nh gi? thu?t to?n. Travel/speed factor, capacity v? travel-time reliability ???c ?? ? ph?n c?i ti?n t??ng lai v? dataset hi?n ch?a c? d? li?u t?c ??, l?u l??ng ho?c chu?i quan s?t theo th?i gian.

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "default_scenario": "normal",
+  "scenarios": {
+    "normal": {
+      "description": "Baseline daytime traffic with the values stored in edges_clean.js.",
+      "congestion_offset_by_road_type": {
+        "one_way": 0,
+        "two_way": 0,
+        "access": 0
+      },
+      "risk_multiplier": 1.0
+    },
+    "rush_hour": {
+      "description": "Peak-hour traffic that increases congestion on one-way, two-way, and access roads.",
+      "congestion_offset_by_road_type": {
+        "one_way": 1,
+        "two_way": 1,
+        "access": 1
+      },
+      "risk_multiplier": 1.0
+    },
+    "rainy_day": {
+      "description": "Rainy conditions that increase congestion and road risk across the network.",
+      "congestion_offset_by_road_type": {
+        "one_way": 1,
+        "two_way": 1,
+        "access": 1
+      },
+      "risk_multiplier": 1.35
+    }
+  }
+}

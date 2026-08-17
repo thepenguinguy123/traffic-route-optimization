@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Route Optimizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.css" />
+    
+    <link rel="stylesheet" href="styles.css?v=20260813-tsp-panel-v2">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="control-panel" id="control-panel">
+            <header class="control-panel__header">
+                <h1>Traffic Route Optimizer</h1>
+                <p class="subtitle">District 1, Ho Chi Minh City</p>
+            </header>
+            <div class="control-panel__content">
+                <div class="control-group algorithm-control">
+                    <div class="control-label-row">
+                        <label for="algorithm-select">Algorithm</label>
+                        <span class="control-kicker">GRAPH CORE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="algorithm-select" class="select">
+                            <option value="">Loading algorithms...</option>
+                        </select>
+                    </div>
+                    <p id="algorithm-description" class="control-hint">Choose a graph exploration strategy.</p>
+                </div>
+                <div class="control-group endpoint-control endpoint-control--start" id="start-group">
+                    <div class="endpoint-control__heading">
+                        <span class="endpoint-control__marker">S</span>
+                        <label for="start-select">Start point</label>
+                        <span class="endpoint-control__kicker">START</span>
+                    </div>
+                    <select id="start-select" class="select">
+                        <option value="">No node selected</option>
+                    </select>
+                    <p id="start-selection-summary" class="endpoint-control__summary">Choose a place to start.</p>
+                </div>
+                <div class="control-group endpoint-control endpoint-control--end" id="end-group">
+                    <div class="endpoint-control__heading">
+                        <span class="endpoint-control__marker">E</span>
+                        <label for="end-select">End point</label>
+                        <span class="endpoint-control__kicker">DESTINATION</span>
+                    </div>
+                    <select id="end-select" class="select">
+                        <option value="">No node selected</option>
+                    </select>
+                    <p id="end-selection-summary" class="endpoint-control__summary">Choose a destination.</p>
+                </div>
+                <div class="control-group" id="tsp-section" style="display: none;">
+                    <div class="tsp-header">
+                        <label>TSP Waypoints (<span id="tsp-count">0</span> selected)</label>
+                        <div class="tsp-actions">
+                            <button id="btn-select-all" class="btn-secondary btn-small">Select All</button>
+                            <button id="btn-clear-all" class="btn-secondary btn-small">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="tsp-waypoints-list" class="waypoints-list"></div>
+
+                    <div class="tsp-route-panel">
+                        <div class="tsp-queue-panel__header">
+                            <div>
+                                <span class="control-kicker">ROUTE QUEUE</span>
+                                <p class="control-hint">Drag and drop to reorder stops.</p>
+                            </div>
+                            <span id="tsp-queue-count" class="tsp-queue-count">0</span>
+                        </div>
+                        <div class="tsp-route-panel__mode-row">
+                            <span class="tsp-mode-label">MODE</span>
+                            <div class="tsp-mode-options" role="radiogroup" aria-label="TSP route mode">
+                                <label class="tsp-mode-option">
+                                    <input type="radio" name="tsp-mode" value="auto" checked>
+                                    <strong>Automatic</strong>
+                                </label>
+                                <label class="tsp-mode-option">
+                                    <input type="radio" name="tsp-mode" value="ordered">
+                                    <strong>Ordered</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <ol id="tsp-queue" class="tsp-queue" aria-label="TSP waypoint order"></ol>
+                        <p id="tsp-queue-empty" class="tsp-queue__empty">No stops selected.</p>
+                    </div>
+                </div>
+                <div class="control-group" id="cost-type">
+                    <div class="control-label-row">
+                        <label for="cost-profile-select">Optimization criteria</label>
+                        <span class="control-kicker">COST PROFILE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="cost-profile-select" class="select">
+                            <option value="balanced">Balanced</option>
+                        </select>
+                    </div>
+                    <p id="cost-description" class="control-hint">Balance distance, travel time, and risk.</p>
+                </div>
+                <div class="control-group scenario-control">
+                    <div class="control-label-row">
+                        <label for="traffic-scenario-select">Traffic scenario</label>
+                        <span class="control-kicker">TRAFFIC MODE</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="traffic-scenario-select" class="select">
+                            <option value="normal">Normal</option>
+                        </select>
+                    </div>
+                    <p id="traffic-scenario-description" class="control-hint">Baseline daytime traffic.</p>
+                </div>                <div class="control-group">
+                    <label for="speed-slider">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="1" max="100" value="50">
+                    <div class="slider-labels">
+                        <span>Slow</span>
+                        <span>Fast</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="btn-start" class="btn-primary">Start Search</button>
+                    <div class="playback-controls" style="display: none;">
+                        <button id="btn-pause" class="btn-secondary">Pause</button>
+                        <button id="btn-resume" class="btn-secondary" style="display: none;">Resume</button>
+                        <button id="btn-stop" class="btn-secondary">Stop</button>
+                        <button id="btn-reset" class="btn-secondary">Reset</button>
+                    </div>
+                    <div class="compare-action">
+                        <span class="compare-action__label">ALGORITHM BENCHMARK</span>
+                        <button id="btn-compare" class="btn-compare">Compare Algorithms</button>
+                    </div>
+                </div>
+                <div id="legend" class="glass-panel">
+                    <h4>Legend</h4>
+                    <ul class="legend-list">
+                        <li><span class="legend-color legend-color--unexplored"></span>Unexplored</li>
+                        <li><span class="legend-color legend-color--food"></span>Food place</li>
+                        <li><span class="legend-color legend-color--frontier"></span>Frontier</li>
+                        <li><span class="legend-color legend-color--visited"></span>Visited</li>
+                        <li><span class="legend-color legend-color--current"></span>Processing</li>
+                        <li><span class="legend-color legend-color--optimal"></span>Result route</li>
+                        <li><span class="legend-color legend-color--start"></span>Start point</li>
+                        <li><span class="legend-color legend-color--end"></span>End point</li>
+                    </ul>
+                    <div class="edge-legend">
+                        <div class="edge-legend__header">
+                            <span class="stat-label">Edge color</span>
+                            <div class="edge-metric-toggle" role="group" aria-label="Select the edge color metric">
+                                <button type="button" class="edge-metric-toggle__button is-active" data-edge-metric="congestion">Congestion</button>
+                                <button type="button" class="edge-metric-toggle__button" data-edge-metric="risk">Risk</button>
+                            </div>
+                        </div>
+                        <div id="edge-scale" class="edge-scale" aria-hidden="true"></div>
+                        <div class="slider-labels">
+                            <span id="edge-low-label">Free-flowing</span>
+                            <span id="edge-high-label">Congested</span>
+                        </div>
+                        <p id="edge-direction-help" class="edge-direction-help">Arrows indicate one-way direction. Edge colors show congestion or risk.</p>
+                    </div>
+                </div>
+            </div>
+            <button id="panel-resizer" class="panel-resizer" type="button" aria-label="Resize the control panel" title="Drag to resize the control panel"></button>
+        </aside>
+        <main class="map-container">
+            <div id="map"></div>
+            <div id="loading-overlay" style="display: none;">
+                <p>Loading map...</p>
+            </div>
+            <aside id="results-drawer" class="results-drawer" aria-hidden="true" hidden>
+                <div class="results-drawer__header">
+                    <div>
+                        <span id="results-drawer-kicker" class="control-kicker">ROUTE REVIEW</span>
+                        <h2 id="results-drawer-title">Search Results</h2>
+                    </div>
+                    <button id="results-drawer-close" class="results-drawer__close" type="button" aria-label="Close results panel">&times;</button>
+                    <button id="results-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse results panel" aria-expanded="true">&rsaquo;</button>
+                </div>
+                <button id="results-drawer-resizer" class="results-drawer__resizer" type="button" aria-label="Resize the results panel" title="Drag to resize the results panel"></button>
+                <div class="results-drawer__content">
+                    <section id="metrics-panel" class="compare-panel" aria-labelledby="compare-title" hidden>
+                        <div class="compare-panel__overview">
+                            <div class="compare-panel__heading">
+                                <div>
+                                    <span class="control-kicker">BENCHMARK</span>
+                                    <h3 id="compare-title">Algorithm Comparison</h3>
+                                </div>
+                                <span id="metrics-profile" class="compare-panel__profile"></span>
+                            </div>
+                            <p id="compare-context" class="compare-context">Choose start and end points to create a benchmark.</p>
+                            <div class="compare-verdict" aria-live="polite">
+                                <span class="compare-verdict__label">QUICK VERDICT</span>
+                                <strong id="compare-winner">&mdash;</strong>
+                                <span id="compare-winner-detail">Run a comparison to identify the strongest algorithm.</span>
+                            </div>
+                            <div id="compare-selection" class="compare-selection" aria-live="polite">
+                                Click an algorithm row to inspect its visited nodes and final route.
+                            </div>
+                                                        <div id="compare-metric-summary" class="compare-metric-summary" role="list" aria-label="Algorithm rankings by metric">
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button is-active" data-compare-metric="total_cost" aria-pressed="true">Cost</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_cost">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="processing_time_ms" aria-pressed="false">Runtime</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="processing_time_ms">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="explored_nodes" aria-pressed="false">Explored</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="explored_nodes">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="total_distance_km" aria-pressed="false">Distance</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_distance_km">&mdash;</span>
+                                </div>
+                                <div class="compare-metric-summary__row" role="listitem">
+                                    <button type="button" class="compare-metric-selector__button" data-compare-metric="total_time_min" aria-pressed="false">Travel Time</button>
+                                    <span class="compare-metric-summary__value" data-compare-summary="total_time_min">&mdash;</span>
+                                </div>
+                            </div>
+                        </div>
+                        <aside class="compare-panel__details" aria-labelledby="compare-details-title">
+                            <div class="compare-panel__details-heading">
+                                <span class="control-kicker">DETAIL MATRIX</span>
+                                <h3 id="compare-details-title">Metrics Table</h3>
+                            </div>
+                            <div class="metrics-table-wrap">
+                                <table class="metrics-table compare-table">
+                                    <caption>Click a row to inspect that algorithm on the map.</caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Algorithm</th>
+                                            <th>Status</th>
+                                            <th>Nodes</th>
+                                            <th>Runtime</th>
+                                            <th>Cost</th>
+                                            <th>Distance</th>
+                                            <th>Travel</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="metrics-table-body"></tbody>
+                                </table>
+                            </div>
+                        </aside>
+                    </section>
+                    <div id="results-panel" style="display: none;" class="glass-panel">
+                        <h3>Results Summary</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card"><span class="stat-value" id="stat-explored">0</span><span class="stat-label">Nodes Explored</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-distance">0 km</span><span class="stat-label">Total Distance</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-time">0 min</span><span class="stat-label">Total Time</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-cost">0</span><span class="stat-label">Total Cost</span></div>
+                            <div class="stat-card"><span class="stat-value" id="stat-proc-time">0 ms</span><span class="stat-label">Processing Time</span></div>
+                        </div>
+
+                        <div class="explanation-box">
+                            <span class="stat-label">Analysis:</span>
+                            <div id="explanation-text"></div>
+                            <div id="explanation-details" class="explanation-details" hidden></div>
+                        </div>
+                    </div>
+                    <section id="route-review-panel" class="route-review" aria-labelledby="route-review-title">
+                        <div class="route-review__heading">
+                            <div>
+                                <span class="control-kicker">STEP-BY-STEP</span>
+                                <h3 id="route-review-title">Route Steps</h3>
+                            </div>
+                            <span id="route-step-counter" class="route-review__counter">0 / 0</span>
+                        </div>
+                        <div class="route-review__toolbar" role="group" aria-label="Navigate route steps">
+                            <button id="route-step-prev" class="btn-secondary btn-small" type="button" aria-label="Previous step" disabled>&larr;</button>
+                            <button id="route-step-next" class="btn-secondary btn-small" type="button" aria-label="Next step" disabled>&rarr;</button>
+                        </div>
+                        <div id="route-step-detail" class="route-step-detail" aria-live="polite">No route available.</div>
+                        <ol id="route-step-list" class="route-step-list" aria-label="Route step list"></ol>
+                    </section>
+                </div>
+            </aside>
+            <aside id="compare-drawer" class="results-drawer is-compare-mode" aria-hidden="true" hidden>
+                <div class="results-drawer__header">
+                    <div>
+                        <span id="compare-drawer-kicker" class="control-kicker">ALGORITHM BENCHMARK</span>
+                        <h2 id="compare-drawer-title">Algorithm Comparison</h2>
+                    </div>
+                    <button id="compare-drawer-close" class="results-drawer__close" type="button" aria-label="Close comparison panel">&times;</button>
+                </div>
+                <button id="compare-drawer-resizer" class="results-drawer__resizer" type="button" aria-label="Resize the comparison panel" title="Drag to resize the comparison panel"></button>
+                <button id="compare-drawer-toggle" class="results-drawer__toggle" type="button" aria-label="Collapse comparison panel" aria-expanded="true"></button>
+                <div id="compare-drawer-content" class="results-drawer__content"></div>
+            </aside>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+    <script src="app.js?v=20260813-tsp-drag-mode-v1"></script>
+</body>
+</html>
