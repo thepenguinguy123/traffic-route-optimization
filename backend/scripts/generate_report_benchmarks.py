@@ -99,12 +99,14 @@ def build_induced_graph(
     return graph
 
 
-def find_congestion_case() -> ExperimentCase:
-    """Chọn đồ thị con 30 node có đường vòng dài hơn khi kẹt xe tăng."""
+def find_fixed_experiment_case() -> ExperimentCase:
+    """Chọn đồ thị con 30 node phù hợp cho ca thực nghiệm 42 -> 25."""
 
     full_normal_graph = load_clean_graph(scenario="normal")
     full_rush_graph = load_clean_graph(scenario="rush_hour")
     profile = COST_PROFILES["balanced"]
+    start = "42"
+    goal = "25"
     candidate: tuple[float, ExperimentCase] | None = None
 
     for seed in sorted(node.id for node in full_normal_graph.get_all_nodes()):
@@ -113,55 +115,43 @@ def find_congestion_case() -> ExperimentCase:
             seed,
             EXPERIMENT_NODE_COUNT,
         )
-        if node_ids is None:
+        if node_ids is None or start not in node_ids or goal not in node_ids:
             continue
 
         normal_graph = build_induced_graph(full_normal_graph, node_ids)
         rush_graph = build_induced_graph(full_rush_graph, node_ids)
-        for start in node_ids:
-            for goal in node_ids:
-                if start == goal:
-                    continue
-                normal = ALGORITHM_REGISTRY["ucs"](
-                    normal_graph,
-                    start,
-                    goal,
-                    profile,
-                )
-                rush = ALGORITHM_REGISTRY["ucs"](
-                    rush_graph,
-                    start,
-                    goal,
-                    profile,
-                )
-                if not normal.found or not rush.found or normal.path == rush.path:
-                    continue
+        normal = ALGORITHM_REGISTRY["ucs"](
+            normal_graph,
+            start,
+            goal,
+            profile,
+        )
+        rush = ALGORITHM_REGISTRY["ucs"](
+            rush_graph,
+            start,
+            goal,
+            profile,
+        )
+        if not normal.found or not rush.found or normal.path == rush.path:
+            continue
 
-                distance_increase = rush.total_distance - normal.total_distance
-                old_route_rush_cost = rush_graph.calculate_path_cost(
-                    normal.path,
-                    profile,
-                )
-                if (
-                    distance_increase <= 0
-                    or rush.total_cost >= old_route_rush_cost
-                ):
-                    continue
+        distance_increase = rush.total_distance - normal.total_distance
+        old_route_rush_cost = rush_graph.calculate_path_cost(normal.path, profile)
+        if distance_increase <= 0 or rush.total_cost >= old_route_rush_cost:
+            continue
 
-                score = distance_increase + 0.01 * (
-                    len(rush.path) - len(normal.path)
-                )
-                experiment_case = ExperimentCase(
-                    node_ids=node_ids,
-                    start=start,
-                    goal=goal,
-                )
-                if candidate is None or score > candidate[0]:
-                    candidate = (score, experiment_case)
+        score = distance_increase + 0.01 * (len(rush.path) - len(normal.path))
+        experiment_case = ExperimentCase(
+            node_ids=node_ids,
+            start=start,
+            goal=goal,
+        )
+        if candidate is None or score > candidate[0]:
+            candidate = (score, experiment_case)
 
     if candidate is None:
         raise RuntimeError(
-            "Không tìm thấy đồ thị con 30 node có đường vòng do kẹt xe."
+            "Không tìm thấy đồ thị con phù hợp cho ca 42 -> 25."
         )
     return candidate[1]
 
@@ -384,7 +374,7 @@ def main() -> None:
     """Sinh toàn bộ tài sản dùng cho báo cáo."""
 
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    experiment_case = find_congestion_case()
+    experiment_case = find_fixed_experiment_case()
     normal_graph = build_induced_graph(
         load_clean_graph(scenario="normal"),
         experiment_case.node_ids,

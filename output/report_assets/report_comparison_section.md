@@ -2,7 +2,7 @@
 
 ## Thiết lập
 
-Thí nghiệm dùng **đồ thị con cảm sinh gồm đúng 30 node và 48 cạnh** từ dataset giao thông hybrid của dự án (các địa điểm thực tế, điều kiện giao thông mô phỏng tái lập). Cặp điểm đầu-cuối là `1003` -> `25`, profile chi phí là `balanced`. Như vậy toàn bộ phần thực nghiệm tuân theo yêu cầu kiểm thử trong khoảng 30 node. Mỗi thuật toán chạy 101 lần trên cùng tiến trình; thời gian trong bảng là trung vị của trường `processing_time_ms`, do đó giảm ảnh hưởng của dao động hệ điều hành. Chi phí tuyến là tổng chi phí chuẩn hoá theo hàm: khoảng cách 0,30; thời gian cơ sở 0,45; độ trễ do kẹt xe 0,15; rủi ro 0,10.
+Thí nghiệm dùng **đồ thị con cảm sinh gồm đúng 30 node và 48 cạnh** từ dataset giao thông hybrid của dự án (các địa điểm thực tế, điều kiện giao thông mô phỏng tái lập). Cặp điểm đầu-cuối là `42` -> `25`, profile chi phí là `balanced`. Như vậy toàn bộ phần thực nghiệm tuân theo yêu cầu kiểm thử trong khoảng 30 node. Mỗi thuật toán chạy 101 lần trên cùng tiến trình; thời gian trong bảng là trung vị của trường `processing_time_ms`, do đó giảm ảnh hưởng của dao động hệ điều hành. Chi phí tuyến là tổng chi phí chuẩn hoá theo hàm: khoảng cách 0,30; thời gian cơ sở 0,45; độ trễ do kẹt xe 0,15; rủi ro 0,10.
 
 ## Bảng so sánh lý thuyết
 
@@ -23,12 +23,12 @@ Các độ phức tạp trên mô tả phiên bản lý thuyết, không tính d
 
 | Thuật toán | Node đã duyệt | Quãng đường (km) | Thời gian đi (phút) | Tổng chi phí | Thời gian xử lý trung vị (ms) |
 |---|---:|---:|---:|---:|---:|
-| BFS | 19 | 0.960 | 2.881 | 3.0417 | 0.2489 |
-| DFS | 10 | 0.960 | 2.881 | 3.0417 | 0.1336 |
-| UCS | 24 | 0.960 | 2.881 | 3.0417 | 0.3666 |
-| A* | 22 | 0.960 | 2.881 | 3.0417 | 0.8636 |
-| GBFS | 8 | 0.960 | 2.881 | 3.0417 | 0.1429 |
-| IDA* | 8 | 0.960 | 2.881 | 3.0417 | 0.3387 |
+| BFS | 17 | 0.897 | 2.679 | 2.8331 | 0.1886 |
+| DFS | 8 | 0.897 | 2.679 | 2.8331 | 0.0810 |
+| UCS | 24 | 0.897 | 2.679 | 2.8331 | 0.3351 |
+| A* | 22 | 0.897 | 2.679 | 2.8331 | 0.8383 |
+| GBFS | 6 | 0.897 | 2.679 | 2.8331 | 0.1032 |
+| IDA* | 6 | 0.897 | 2.679 | 2.8331 | 0.2000 |
 
 ![Biểu đồ cột so sánh chất lượng tuyến, node đã duyệt và thời gian xử lý](algorithm_comparison.svg)
 
@@ -36,12 +36,12 @@ Các độ phức tạp trên mô tả phiên bản lý thuyết, không tính d
 
 ## Tác động của kẹt xe
 
-Để kiểm tra độ nhạy với kẹt xe, giữ nguyên cặp điểm `1003` -> `25` và profile `balanced`. Kịch bản `rush_hour` cộng một mức congestion cho mọi loại đường (giới hạn mức 5). Bảng dưới dùng UCS; A* và IDA* cũng chọn cùng nghiệm tối ưu do cùng hàm chi phí.
+Để kiểm tra độ nhạy với kẹt xe, giữ nguyên cặp điểm `42` -> `25` và profile `balanced`. Kịch bản `rush_hour` cộng một mức congestion cho mọi loại đường (giới hạn mức 5). Bảng dưới dùng UCS; A* và IDA* cũng chọn cùng nghiệm tối ưu do cùng hàm chi phí.
 
 | Trạng thái | Tuyến | Quãng đường (km) | Thời gian đi (phút) | Tổng chi phí |
 |---|---|---:|---:|---:|
-| Bình thường - tuyến tối ưu | `1003 -> 1019 -> 42 -> 41 -> 33 -> 34 -> 24 -> 25` | 0.960 | 2.881 | 3.0417 |
-| Giờ cao điểm - giữ tuyến cũ | `1003 -> 1019 -> 42 -> 41 -> 33 -> 34 -> 24 -> 25` | 0.960 | 3.661 | 3.2367 |
-| Giờ cao điểm - tuyến tối ưu mới | `1003 -> 1019 -> 42 -> 43 -> 45 -> 36 -> 30 -> 1028 -> 29 -> 25` | 0.976 | 3.356 | 3.2328 |
+| Bình thường - tuyến tối ưu | `42 -> 41 -> 33 -> 34 -> 24 -> 25` | 0.897 | 2.679 | 2.8331 |
+| Giờ cao điểm - giữ tuyến cũ | `42 -> 41 -> 33 -> 34 -> 24 -> 25` | 0.897 | 3.406 | 3.0150 |
+| Giờ cao điểm - tuyến tối ưu mới | `42 -> 43 -> 45 -> 36 -> 30 -> 1028 -> 29 -> 25` | 0.913 | 3.101 | 3.0111 |
 
 Khi giờ cao điểm làm tuyến cũ bị phạt congestion, thuật toán tối ưu đánh giá lại tổng chi phí thay vì giữ đường ngắn theo hình học. Nếu tuyến tối ưu mới dài hơn nhưng có tổng chi phí thấp hơn tuyến cũ trong cùng kịch bản giờ cao điểm, kết quả xác nhận hệ thống đã né đoạn kẹt xe đúng theo hàm mục tiêu. A* và IDA* dùng hàm chi phí giống UCS nên phải cho cùng tuyến tối ưu sau khi thay đổi congestion. Không diễn giải đây là “đường ngắn nhất tuyệt đối”; đây là tuyến có chi phí tổng hợp nhỏ nhất theo trọng số đã công bố.

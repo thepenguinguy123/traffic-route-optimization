@@ -6,30 +6,30 @@
 <line x1="48" y1="275.0" x2="410" y2="275.0" stroke="#ddd"/>
 <text x="42" y="279.0" text-anchor="end" font-family="Arial" font-size="10">0</text>
 <line x1="48" y1="223.8" x2="410" y2="223.8" stroke="#ddd"/>
-<text x="42" y="227.8" text-anchor="end" font-family="Arial" font-size="10">0.7604</text>
+<text x="42" y="227.8" text-anchor="end" font-family="Arial" font-size="10">0.7083</text>
 <line x1="48" y1="172.5" x2="410" y2="172.5" stroke="#ddd"/>
-<text x="42" y="176.5" text-anchor="end" font-family="Arial" font-size="10">1.521</text>
+<text x="42" y="176.5" text-anchor="end" font-family="Arial" font-size="10">1.417</text>
 <line x1="48" y1="121.2" x2="410" y2="121.2" stroke="#ddd"/>
-<text x="42" y="125.2" text-anchor="end" font-family="Arial" font-size="10">2.281</text>
+<text x="42" y="125.2" text-anchor="end" font-family="Arial" font-size="10">2.125</text>
 <line x1="48" y1="70.0" x2="410" y2="70.0" stroke="#ddd"/>
-<text x="42" y="74.0" text-anchor="end" font-family="Arial" font-size="10">3.042</text>
+<text x="42" y="74.0" text-anchor="end" font-family="Arial" font-size="10">2.833</text>
 <rect x="64" y="70.0" width="42" height="205.0" fill="#4e79a7"/>
-<text x="85.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="85.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="85.0" y="290" text-anchor="end" transform="rotate(-35 85.0 290)" font-family="Arial" font-size="10">BFS</text>
 <rect x="121" y="70.0" width="42" height="205.0" fill="#f28e2b"/>
-<text x="142.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="142.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="142.0" y="290" text-anchor="end" transform="rotate(-35 142.0 290)" font-family="Arial" font-size="10">DFS</text>
 <rect x="178" y="70.0" width="42" height="205.0" fill="#e15759"/>
-<text x="199.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="199.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="199.0" y="290" text-anchor="end" transform="rotate(-35 199.0 290)" font-family="Arial" font-size="10">UCS</text>
 <rect x="235" y="70.0" width="42" height="205.0" fill="#76b7b2"/>
-<text x="256.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="256.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="256.0" y="290" text-anchor="end" transform="rotate(-35 256.0 290)" font-family="Arial" font-size="10">A*</text>
 <rect x="292" y="70.0" width="42" height="205.0" fill="#59a14f"/>
-<text x="313.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="313.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="313.0" y="290" text-anchor="end" transform="rotate(-35 313.0 290)" font-family="Arial" font-size="10">GBFS</text>
 <rect x="349" y="70.0" width="42" height="205.0" fill="#af7aa1"/>
-<text x="370.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">3.042</text>
+<text x="370.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">2.833</text>
 <text x="370.0" y="290" text-anchor="end" transform="rotate(-35 370.0 290)" font-family="Arial" font-size="10">IDA*</text>
 <text x="645" y="28" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold">Số node đã duyệt</text>
 <line x1="478" y1="275" x2="840" y2="275" stroke="#333"/>
@@ -44,11 +44,11 @@
 <text x="472" y="125.2" text-anchor="end" font-family="Arial" font-size="10">18</text>
 <line x1="478" y1="70.0" x2="840" y2="70.0" stroke="#ddd"/>
 <text x="472" y="74.0" text-anchor="end" font-family="Arial" font-size="10">24</text>
-<rect x="494" y="112.7" width="42" height="162.3" fill="#4e79a7"/>
-<text x="515.0" y="107.7" text-anchor="middle" font-family="Arial" font-size="10">19</text>
+<rect x="494" y="129.8" width="42" height="145.2" fill="#4e79a7"/>
+<text x="515.0" y="124.8" text-anchor="middle" font-family="Arial" font-size="10">17</text>
 <text x="515.0" y="290" text-anchor="end" transform="rotate(-35 515.0 290)" font-family="Arial" font-size="10">BFS</text>
-<rect x="551" y="189.6" width="42" height="85.4" fill="#f28e2b"/>
-<text x="572.0" y="184.6" text-anchor="middle" font-family="Arial" font-size="10">10</text>
+<rect x="551" y="206.7" width="42" height="68.3" fill="#f28e2b"/>
+<text x="572.0" y="201.7" text-anchor="middle" font-family="Arial" font-size="10">8</text>
 <text x="572.0" y="290" text-anchor="end" transform="rotate(-35 572.0 290)" font-family="Arial" font-size="10">DFS</text>
 <rect x="608" y="70.0" width="42" height="205.0" fill="#e15759"/>
 <text x="629.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">24</text>
@@ -56,11 +56,11 @@
 <rect x="665" y="87.1" width="42" height="187.9" fill="#76b7b2"/>
 <text x="686.0" y="82.1" text-anchor="middle" font-family="Arial" font-size="10">22</text>
 <text x="686.0" y="290" text-anchor="end" transform="rotate(-35 686.0 290)" font-family="Arial" font-size="10">A*</text>
-<rect x="722" y="206.7" width="42" height="68.3" fill="#59a14f"/>
-<text x="743.0" y="201.7" text-anchor="middle" font-family="Arial" font-size="10">8</text>
+<rect x="722" y="223.8" width="42" height="51.2" fill="#59a14f"/>
+<text x="743.0" y="218.8" text-anchor="middle" font-family="Arial" font-size="10">6</text>
 <text x="743.0" y="290" text-anchor="end" transform="rotate(-35 743.0 290)" font-family="Arial" font-size="10">GBFS</text>
-<rect x="779" y="206.7" width="42" height="68.3" fill="#af7aa1"/>
-<text x="800.0" y="201.7" text-anchor="middle" font-family="Arial" font-size="10">8</text>
+<rect x="779" y="223.8" width="42" height="51.2" fill="#af7aa1"/>
+<text x="800.0" y="218.8" text-anchor="middle" font-family="Arial" font-size="10">6</text>
 <text x="800.0" y="290" text-anchor="end" transform="rotate(-35 800.0 290)" font-family="Arial" font-size="10">IDA*</text>
 <text x="1075" y="28" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold">Thời gian xử lý trung vị (ms)</text>
 <line x1="908" y1="275" x2="1270" y2="275" stroke="#333"/>
@@ -68,29 +68,29 @@
 <line x1="908" y1="275.0" x2="1270" y2="275.0" stroke="#ddd"/>
 <text x="902" y="279.0" text-anchor="end" font-family="Arial" font-size="10">0</text>
 <line x1="908" y1="223.8" x2="1270" y2="223.8" stroke="#ddd"/>
-<text x="902" y="227.8" text-anchor="end" font-family="Arial" font-size="10">0.2159</text>
+<text x="902" y="227.8" text-anchor="end" font-family="Arial" font-size="10">0.2096</text>
 <line x1="908" y1="172.5" x2="1270" y2="172.5" stroke="#ddd"/>
-<text x="902" y="176.5" text-anchor="end" font-family="Arial" font-size="10">0.4318</text>
+<text x="902" y="176.5" text-anchor="end" font-family="Arial" font-size="10">0.4192</text>
 <line x1="908" y1="121.2" x2="1270" y2="121.2" stroke="#ddd"/>
-<text x="902" y="125.2" text-anchor="end" font-family="Arial" font-size="10">0.6477</text>
+<text x="902" y="125.2" text-anchor="end" font-family="Arial" font-size="10">0.6287</text>
 <line x1="908" y1="70.0" x2="1270" y2="70.0" stroke="#ddd"/>
-<text x="902" y="74.0" text-anchor="end" font-family="Arial" font-size="10">0.8636</text>
-<rect x="924" y="215.9" width="42" height="59.1" fill="#4e79a7"/>
-<text x="945.0" y="210.9" text-anchor="middle" font-family="Arial" font-size="10">0.2489</text>
+<text x="902" y="74.0" text-anchor="end" font-family="Arial" font-size="10">0.8383</text>
+<rect x="924" y="228.9" width="42" height="46.1" fill="#4e79a7"/>
+<text x="945.0" y="223.9" text-anchor="middle" font-family="Arial" font-size="10">0.1886</text>
 <text x="945.0" y="290" text-anchor="end" transform="rotate(-35 945.0 290)" font-family="Arial" font-size="10">BFS</text>
-<rect x="981" y="243.3" width="42" height="31.7" fill="#f28e2b"/>
-<text x="1002.0" y="238.3" text-anchor="middle" font-family="Arial" font-size="10">0.1336</text>
+<rect x="981" y="255.2" width="42" height="19.8" fill="#f28e2b"/>
+<text x="1002.0" y="250.2" text-anchor="middle" font-family="Arial" font-size="10">0.081</text>
 <text x="1002.0" y="290" text-anchor="end" transform="rotate(-35 1002.0 290)" font-family="Arial" font-size="10">DFS</text>
-<rect x="1038" y="188.0" width="42" height="87.0" fill="#e15759"/>
-<text x="1059.0" y="183.0" text-anchor="middle" font-family="Arial" font-size="10">0.3666</text>
+<rect x="1038" y="193.1" width="42" height="81.9" fill="#e15759"/>
+<text x="1059.0" y="188.1" text-anchor="middle" font-family="Arial" font-size="10">0.3351</text>
 <text x="1059.0" y="290" text-anchor="end" transform="rotate(-35 1059.0 290)" font-family="Arial" font-size="10">UCS</text>
 <rect x="1095" y="70.0" width="42" height="205.0" fill="#76b7b2"/>
-<text x="1116.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">0.8636</text>
+<text x="1116.0" y="65.0" text-anchor="middle" font-family="Arial" font-size="10">0.8383</text>
 <text x="1116.0" y="290" text-anchor="end" transform="rotate(-35 1116.0 290)" font-family="Arial" font-size="10">A*</text>
-<rect x="1152" y="241.1" width="42" height="33.9" fill="#59a14f"/>
-<text x="1173.0" y="236.1" text-anchor="middle" font-family="Arial" font-size="10">0.1429</text>
+<rect x="1152" y="249.8" width="42" height="25.2" fill="#59a14f"/>
+<text x="1173.0" y="244.8" text-anchor="middle" font-family="Arial" font-size="10">0.1032</text>
 <text x="1173.0" y="290" text-anchor="end" transform="rotate(-35 1173.0 290)" font-family="Arial" font-size="10">GBFS</text>
-<rect x="1209" y="194.6" width="42" height="80.4" fill="#af7aa1"/>
-<text x="1230.0" y="189.6" text-anchor="middle" font-family="Arial" font-size="10">0.3387</text>
+<rect x="1209" y="226.1" width="42" height="48.9" fill="#af7aa1"/>
+<text x="1230.0" y="221.1" text-anchor="middle" font-family="Arial" font-size="10">0.2</text>
 <text x="1230.0" y="290" text-anchor="end" transform="rotate(-35 1230.0 290)" font-family="Arial" font-size="10">IDA*</text>
 </svg>
